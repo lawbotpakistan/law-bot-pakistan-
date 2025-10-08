@@ -3,950 +3,1104 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Law Bot Pakistan - AI Legal Assistant</title>
+    <title>LawBotPakistan - Professional Legal Research Assistant</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         body {
             box-sizing: border-box;
         }
-        
-        :root {
-            --primary-blue: #1e40af;
-            --light-blue: #3b82f6;
-            --dark-blue: #1e3a8a;
-            --white: #ffffff;
-            --black: #000000;
-            --gray-100: #f3f4f6;
-            --gray-200: #e5e7eb;
-            --gray-800: #1f2937;
-            --gray-900: #111827;
-        }
-        
-        .bg-primary { background-color: var(--primary-blue); }
-        .bg-light-blue { background-color: var(--light-blue); }
-        .bg-dark-blue { background-color: var(--dark-blue); }
-        .text-primary { color: var(--primary-blue); }
-        .border-primary { border-color: var(--primary-blue); }
-        
         .gradient-bg {
-            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #60a5fa 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
-        
-        .chat-bubble-user {
-            background: var(--primary-blue);
-            border-radius: 18px 18px 4px 18px;
-            color: white;
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
-        
-        .chat-bubble-bot {
-            background: var(--white);
-            border: 1px solid var(--gray-200);
-            border-radius: 18px 18px 18px 4px;
-            color: var(--black);
+        .chat-container {
+            height: 100%;
+            max-height: 500px;
+            overflow-y: auto;
         }
-        
-        .typing-animation {
-            animation: typing 1.5s infinite;
+        .message {
+            animation: fadeIn 0.3s ease-in;
         }
-        
-        @keyframes typing {
-            0%, 60%, 100% { opacity: 0.3; }
-            30% { opacity: 1; }
-        }
-        
-        .fade-in {
-            animation: fadeIn 0.3s ease-out;
-        }
-        
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        
-        .screen {
+        .typing-indicator {
             display: none;
         }
-        
-        .screen.active {
-            display: block;
+        .typing-indicator.show {
+            display: flex;
         }
-        
-        .btn-primary {
-            background: var(--primary-blue);
-            color: white;
-            transition: all 0.2s ease;
-        }
-        
-        .btn-primary:hover {
-            background: var(--dark-blue);
-            transform: translateY(-1px);
-        }
-        
-        .loading-spinner {
-            border: 3px solid rgba(59, 130, 246, 0.3);
-            border-top: 3px solid var(--primary-blue);
+        .dot {
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            animation: spin 1s linear infinite;
-            display: inline-block;
-            margin-right: 8px;
+            background-color: #6b7280;
+            animation: typing 1.4s infinite ease-in-out;
         }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .dot:nth-child(1) { animation-delay: -0.32s; }
+        .dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes typing {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
         }
-        
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: var(--primary-blue);
-            color: white;
-            padding: 16px 24px;
-            border-radius: 8px;
-            font-weight: 500;
-            z-index: 1000;
-            transform: translateX(400px);
-            transition: transform 0.3s ease;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        .feature-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
-        
-        .notification.show {
-            transform: translateX(0);
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
         }
-        
-        .legal-response {
-            background: white;
-            border: 1px solid var(--gray-200);
-            border-radius: 12px;
-            padding: 20px;
-            margin: 16px 0;
+        .nav-link {
+            transition: color 0.3s ease;
         }
-        
-        .legal-section {
-            background: var(--gray-100);
-            border-left: 4px solid var(--primary-blue);
-            padding: 12px 16px;
-            margin: 12px 0;
-            border-radius: 0 8px 8px 0;
-        }
-        
-        .case-reference {
-            background: var(--gray-900);
-            color: white;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 14px;
-            margin: 8px 0;
+        .nav-link:hover {
+            color: #fbbf24;
         }
     </style>
 </head>
-<body class="bg-gray-50 min-h-full">
-    <!-- Navigation -->
-    <nav class="bg-white shadow-sm border-b">
-        <div class="max-w-7xl mx-auto px-6 py-4">
-            <div class="flex items-center justify-between">
-                <!-- Logo -->
-                <div class="flex items-center space-x-3 cursor-pointer" onclick="showScreen('home')">
-                    <svg class="w-12 h-12" viewBox="0 0 48 48" fill="none">
-                        <circle cx="24" cy="24" r="22" fill="#1e40af" stroke="#000" stroke-width="2"/>
-                        <circle cx="24" cy="24" r="18" fill="#3b82f6"/>
-                        <g transform="translate(24,20)">
-                            <line x1="0" y1="-8" x2="0" y2="8" stroke="#ffd700" stroke-width="2"/>
-                            <line x1="-12" y1="-6" x2="12" y2="-6" stroke="#ffd700" stroke-width="2"/>
-                            <circle cx="-10" cy="-4" r="4" fill="none" stroke="#ffd700" stroke-width="1.5"/>
-                            <path d="M-14,-2 L-6,-2" stroke="#ffd700" stroke-width="1"/>
-                            <circle cx="10" cy="-4" r="4" fill="none" stroke="#ffd700" stroke-width="1.5"/>
-                            <path d="M6,-2 L14,-2" stroke="#ffd700" stroke-width="1"/>
-                            <line x1="-10" y1="-6" x2="-10" y2="-8" stroke="#ffd700" stroke-width="1"/>
-                            <line x1="10" y1="-6" x2="10" y2="-8" stroke="#ffd700" stroke-width="1"/>
-                        </g>
-                        <text x="24" y="44" text-anchor="middle" fill="#fff" font-size="6" font-weight="bold">LAW</text>
-                    </svg>
-                    <div>
-                        <h1 class="text-xl font-bold text-primary">Law Bot Pakistan</h1>
-                        <p class="text-xs text-gray-500">AI Legal Assistant</p>
-                    </div>
+<body class="min-h-full">
+    <!-- Hero Section -->
+    <div id="heroSection" class="gradient-bg min-h-full">
+        <div class="container mx-auto px-4 py-8">
+            <!-- Navigation -->
+            <nav class="flex justify-between items-center mb-12">
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-balance-scale text-white text-2xl"></i>
+                    <span class="text-white text-xl font-bold">LawBotPakistan</span>
                 </div>
-                
-                <!-- Navigation Links -->
-                <div class="hidden md:flex items-center space-x-6">
-                    <a href="#" class="text-gray-600 hover:text-primary" onclick="showScreen('about')">About</a>
-                    <a href="#" class="text-gray-600 hover:text-primary" onclick="showScreen('faq')">FAQ</a>
-                    <a href="#" class="text-gray-600 hover:text-primary" onclick="showScreen('contact')">Contact</a>
-                    <button id="loginBtn" class="btn-primary px-6 py-2 rounded-lg" onclick="showScreen('login')">Sign In</button>
+                <div class="hidden md:flex space-x-6">
+                    <button onclick="scrollToSection('features')" class="nav-link text-white">Features</button>
+                    <button onclick="scrollToSection('about')" class="nav-link text-white">About</button>
+                    <button onclick="scrollToSection('guide')" class="nav-link text-white">Guide</button>
+                    <button onclick="scrollToSection('faq')" class="nav-link text-white">FAQ</button>
+                    <button onclick="showLoginModal()" class="nav-link text-white">Login</button>
+                    <button onclick="showRegisterModal()" class="bg-white text-purple-600 px-6 py-2 rounded-full font-semibold hover:bg-gray-100 transition duration-200">Get Started</button>
+                </div>
+                <div class="md:hidden">
+                    <button onclick="toggleMobileMenu()" class="text-white">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </nav>
+
+            <!-- Mobile Menu -->
+            <div id="mobileMenu" class="hidden md:hidden mb-8">
+                <div class="glass-effect rounded-lg p-4 space-y-3">
+                    <button onclick="scrollToSection('features')" class="block w-full text-left text-white py-2">Features</button>
+                    <button onclick="scrollToSection('about')" class="block w-full text-left text-white py-2">About</button>
+                    <button onclick="scrollToSection('guide')" class="block w-full text-left text-white py-2">Guide</button>
+                    <button onclick="scrollToSection('faq')" class="block w-full text-left text-white py-2">FAQ</button>
+                    <button onclick="showLoginModal()" class="block w-full text-left text-white py-2">Login</button>
+                    <button onclick="showRegisterModal()" class="block w-full bg-white text-purple-600 py-2 px-4 rounded-full font-semibold">Get Started</button>
                 </div>
             </div>
-        </div>
-    </nav>
 
-    <!-- Home Screen -->
-    <div id="home" class="screen active">
-        <div class="max-w-4xl mx-auto p-6">
-            <div class="bg-white rounded-2xl shadow-lg border p-12 text-center">
-                <svg class="w-24 h-24 mx-auto mb-6" viewBox="0 0 48 48" fill="none">
-                    <rect x="16" y="8" width="16" height="12" rx="2" fill="#1e40af" stroke="#000" stroke-width="1"/>
-                    <circle cx="20" cy="13" r="1.5" fill="#fff"/>
-                    <circle cx="28" cy="13" r="1.5" fill="#fff"/>
-                    <rect x="18" y="20" width="12" height="16" rx="2" fill="#3b82f6" stroke="#000" stroke-width="1"/>
-                    <line x1="18" y1="24" x2="12" y2="22" stroke="#000" stroke-width="2"/>
-                    <circle cx="10" cy="20" r="2" fill="none" stroke="#000" stroke-width="1"/>
-                    <line x1="8" y1="18" x2="12" y2="18" stroke="#000" stroke-width="1"/>
-                    <line x1="10" y1="16" x2="10" y2="20" stroke="#000" stroke-width="1"/>
-                    <line x1="30" y1="24" x2="36" y2="22" stroke="#000" stroke-width="2"/>
-                    <rect x="34" y="18" width="6" height="2" fill="#dc2626"/>
-                    <rect x="34" y="20" width="6" height="2" fill="#16a34a"/>
-                    <rect x="34" y="22" width="6" height="2" fill="#ca8a04"/>
-                    <rect x="20" y="36" width="3" height="8" fill="#1e40af"/>
-                    <rect x="25" y="36" width="3" height="8" fill="#1e40af"/>
-                </svg>
-                
-                <h2 class="text-3xl font-bold text-gray-900 mb-4">Welcome to Law Bot Pakistan</h2>
-                <p class="text-gray-600 text-lg mb-8">Real-time legal research powered by AI. Get instant answers from current Pakistani law, Islamic jurisprudence, and international legal databases.</p>
-                
-                <div class="bg-gray-50 p-6 rounded-lg border mb-8">
-                    <h3 class="text-xl font-semibold text-primary mb-4">Premium Access - Rs. 2,500/month</h3>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
-                        <div class="space-y-3">
-                            <div class="flex items-center text-green-600">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                </svg>
-                                Real-time web search
-                            </div>
-                            <div class="flex items-center text-green-600">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                </svg>
-                                Current case law & precedents
-                            </div>
-                            <div class="flex items-center text-green-600">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                </svg>
-                                Islamic & Pakistani law
-                            </div>
-                        </div>
-                        <div class="space-y-3">
-                            <div class="flex items-center text-green-600">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                </svg>
-                                Unlimited queries
-                            </div>
-                            <div class="flex items-center text-green-600">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                </svg>
-                                Manual verification within 24 hours
-                            </div>
-                            <div class="flex items-center text-green-600">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                </svg>
-                                English & Urdu support
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <button class="btn-primary px-8 py-4 rounded-lg text-lg font-semibold" onclick="showScreen('login')">
+            <!-- Hero Content -->
+            <div class="text-center text-white mb-16">
+                <h1 class="text-5xl md:text-6xl font-bold mb-6">
+                    Professional Legal Research
+                    <span class="block text-yellow-300">Made Simple</span>
+                </h1>
+                <p class="text-xl md:text-2xl mb-8 max-w-3xl mx-auto opacity-90">
+                    Get comprehensive legal guidance for Pakistani law. Constitutional, Family, Corporate, Property, Employment, Criminal, Cyber & International Law.
+                </p>
+                <button onclick="showRegisterModal()" class="bg-yellow-400 text-purple-800 px-8 py-4 rounded-full text-lg font-bold hover:bg-yellow-300 transition duration-200 shadow-lg">
                     Start Your Legal Research
                 </button>
-                <p class="text-gray-500 text-sm mt-4">Manual payment verification • Monthly renewal required • Cancel anytime</p>
-                <div class="bg-yellow-50 p-3 rounded-lg border-l-4 border-yellow-400 mt-4">
-                    <p class="text-yellow-800 text-sm">
-                        <strong>📅 Monthly Payment:</strong> You must pay Rs. 2,500 every 30 days to maintain access. Bot will stop working if payment is not received within 30 days of previous payment.
-                    </p>
+            </div>
+
+            <!-- Features Grid -->
+            <div id="features" class="grid md:grid-cols-3 gap-8 mb-16">
+                <div class="feature-card glass-effect rounded-xl p-6 text-white text-center">
+                    <i class="fas fa-gavel text-4xl mb-4 text-yellow-300"></i>
+                    <h3 class="text-xl font-semibold mb-3">Comprehensive Legal Coverage</h3>
+                    <p class="opacity-90">Constitutional, Family, Corporate, Property, Employment, Criminal, Cyber & International Law</p>
+                </div>
+                <div class="feature-card glass-effect rounded-xl p-6 text-white text-center">
+                    <i class="fas fa-search text-4xl mb-4 text-yellow-300"></i>
+                    <h3 class="text-xl font-semibold mb-3">Detailed Research</h3>
+                    <p class="opacity-90">Get exact statutory references, case law citations, and step-by-step procedures</p>
+                </div>
+                <div class="feature-card glass-effect rounded-xl p-6 text-white text-center">
+                    <i class="fas fa-clock text-4xl mb-4 text-yellow-300"></i>
+                    <h3 class="text-xl font-semibold mb-3">Instant Responses</h3>
+                    <p class="opacity-90">Professional-grade legal guidance available 24/7 for your practice</p>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <!-- Login Screen -->
-    <div id="login" class="screen">
-        <div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
-            <div class="max-w-md w-full space-y-8">
-                <div class="text-center">
-                    <h2 class="mt-6 text-3xl font-extrabold text-gray-900">Sign in to your account</h2>
-                    <p class="mt-2 text-sm text-gray-600">Access premium legal research</p>
-                </div>
-                
-                <div class="bg-white py-8 px-6 shadow-lg rounded-lg border">
-                    <div class="space-y-4">
-                        <button class="w-full flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-700 hover:bg-gray-50" onclick="simulateLogin()">
-                            <svg class="w-5 h-5 mr-3" viewBox="0 0 24 24">
-                                <path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                                <path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                                <path fill="#fbbc05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                                <path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                            </svg>
-                            Continue with Google
-                        </button>
-                        
-                        <button class="w-full flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg text-white hover:opacity-90" style="background: #1877f2;" onclick="simulateLogin()">
-                            <svg class="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                            </svg>
-                            Continue with Facebook
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Payment Screen -->
-    <div id="payment" class="screen">
-        <div class="max-w-2xl mx-auto p-6 mt-20">
-            <div class="bg-white rounded-2xl shadow-lg border p-8">
-                <div class="text-center mb-8">
-                    <h2 class="text-3xl font-bold text-gray-900 mb-4">Subscribe to Law Bot Pakistan</h2>
-                    <p class="text-gray-600">Manual payment - Verified within 2 hours</p>
-                </div>
-                
-                <div class="bg-gray-50 p-6 rounded-lg border mb-8">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-xl font-semibold">Premium Monthly Plan</h3>
-                        <div class="text-right">
-                            <div class="text-3xl font-bold text-primary">Rs. 2,500</div>
-                            <div class="text-gray-500 text-sm">per month</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="bg-blue-50 p-6 rounded-lg border mb-6">
-                    <h4 class="font-semibold text-primary mb-4">💳 Send Payment To:</h4>
-                    
-                    <div class="bg-white p-4 rounded border">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <div class="font-semibold">SadaPay</div>
-                                <div class="text-sm text-gray-600">Account: Rabia Hayi</div>
-                            </div>
-                            <div class="text-right">
-                                <div class="text-lg font-bold text-purple-600 flex items-center">
-                                    03314619402
-                                    <button onclick="copyToClipboard('03314619402')" class="ml-2 p-1 hover:bg-purple-100 rounded" title="Copy number">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-                                        </svg>
-                                    </button>
+            <!-- About Section -->
+            <div id="about" class="mb-16">
+                <div class="glass-effect rounded-xl p-8 text-white">
+                    <h2 class="text-3xl font-bold mb-6 text-center">About LawBotPakistan</h2>
+                    <div class="grid md:grid-cols-2 gap-8 items-center">
+                        <div>
+                            <p class="text-lg mb-4 opacity-90">
+                                LawBotPakistan is Pakistan's premier AI-powered legal research assistant, designed specifically for legal professionals, law students, and individuals seeking comprehensive guidance on Pakistani law.
+                            </p>
+                            <p class="text-lg mb-4 opacity-90">
+                                Our advanced AI system provides detailed, accurate, and up-to-date legal information across all major areas of Pakistani jurisprudence, helping you make informed legal decisions.
+                            </p>
+                            <div class="flex items-center space-x-4">
+                                <div class="text-center">
+                                    <div class="text-2xl font-bold">24/7</div>
+                                    <div class="text-sm opacity-75">Available</div>
                                 </div>
-                                <div class="text-xs text-green-600">✓ Instant verification</div>
+                                <div class="text-center">
+                                    <div class="text-2xl font-bold">8+</div>
+                                    <div class="text-sm opacity-75">Legal Areas</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-2xl font-bold">100%</div>
+                                    <div class="text-sm opacity-75">Pakistani Law</div>
+                                </div>
                             </div>
+                        </div>
+                        <div class="text-center">
+                            <i class="fas fa-balance-scale text-8xl text-yellow-300 mb-4"></i>
+                            <h3 class="text-xl font-semibold">Trusted Legal Guidance</h3>
                         </div>
                     </div>
                 </div>
-                
-                <form onsubmit="submitPayment(event)" class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Full Name *</label>
-                        <input type="text" required placeholder="Your complete name" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:border-primary focus:outline-none">
+            </div>
+
+            <!-- Guide Section -->
+            <div id="guide" class="mb-16">
+                <div class="glass-effect rounded-xl p-8 text-white">
+                    <h2 class="text-3xl font-bold mb-8 text-center">How to Use LawBotPakistan</h2>
+                    <div class="grid md:grid-cols-4 gap-6">
+                        <div class="text-center">
+                            <div class="bg-yellow-400 text-purple-800 rounded-full w-12 h-12 flex items-center justify-center text-xl font-bold mx-auto mb-4">1</div>
+                            <h3 class="font-semibold mb-2">Register</h3>
+                            <p class="text-sm opacity-90">Create your account with basic information</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="bg-yellow-400 text-purple-800 rounded-full w-12 h-12 flex items-center justify-center text-xl font-bold mx-auto mb-4">2</div>
+                            <h3 class="font-semibold mb-2">Subscribe</h3>
+                            <p class="text-sm opacity-90">Choose your subscription plan and make payment</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="bg-yellow-400 text-purple-800 rounded-full w-12 h-12 flex items-center justify-center text-xl font-bold mx-auto mb-4">3</div>
+                            <h3 class="font-semibold mb-2">Get Approved</h3>
+                            <p class="text-sm opacity-90">Wait for admin verification of your payment</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="bg-yellow-400 text-purple-800 rounded-full w-12 h-12 flex items-center justify-center text-xl font-bold mx-auto mb-4">4</div>
+                            <h3 class="font-semibold mb-2">Start Research</h3>
+                            <p class="text-sm opacity-90">Ask legal questions and get detailed guidance</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ Section -->
+            <div id="faq" class="mb-16">
+                <div class="glass-effect rounded-xl p-8 text-white">
+                    <h2 class="text-3xl font-bold mb-8 text-center">Frequently Asked Questions</h2>
+                    <div class="space-y-6">
+                        <div class="border-b border-white border-opacity-20 pb-4">
+                            <h3 class="font-semibold mb-2 text-lg">What areas of Pakistani law does LawBotPakistan cover?</h3>
+                            <p class="opacity-90">We cover all major areas including Constitutional Law, Family Law, Corporate Law, Property Law, Employment Law, Criminal Law, Cyber Law, and International Law as applicable in Pakistan.</p>
+                        </div>
+                        <div class="border-b border-white border-opacity-20 pb-4">
+                            <h3 class="font-semibold mb-2 text-lg">How accurate is the legal information provided?</h3>
+                            <p class="opacity-90">Our AI is trained on comprehensive Pakistani legal databases and provides highly accurate information. However, always consult with a qualified lawyer for specific legal advice.</p>
+                        </div>
+                        <div class="border-b border-white border-opacity-20 pb-4">
+                            <h3 class="font-semibold mb-2 text-lg">What payment methods do you accept?</h3>
+                            <p class="opacity-90">You can pay from ANY mobile banking app - JazzCash, EasyPaisa, Bank Apps, SadaPay, etc. All payments are sent to our SadaPay account number.</p>
+                        </div>
+                        <div class="border-b border-white border-opacity-20 pb-4">
+                            <h3 class="font-semibold mb-2 text-lg">How long does payment verification take?</h3>
+                            <p class="opacity-90">Payment verification typically takes 2-24 hours. Our admin team reviews all payments manually to ensure security.</p>
+                        </div>
+                        <div class="border-b border-white border-opacity-20 pb-4">
+                            <h3 class="font-semibold mb-2 text-lg">Can I cancel my subscription?</h3>
+                            <p class="opacity-90">Yes, you can cancel your subscription at any time. Contact our support team for assistance with cancellations.</p>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold mb-2 text-lg">Is my data secure?</h3>
+                            <p class="opacity-90">Yes, we use industry-standard security measures to protect your data. All conversations are encrypted and stored securely.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pricing -->
+            <div class="max-w-md mx-auto">
+                <div class="glass-effect rounded-xl p-8 text-white text-center">
+                    <h3 class="text-2xl font-bold mb-4">Professional Subscription</h3>
+                    <div class="text-4xl font-bold mb-2">Rs. 2,999<span class="text-lg">/month</span></div>
+                    <p class="opacity-90 mb-6">Unlimited legal queries & comprehensive research</p>
+                    <button onclick="showRegisterModal()" class="w-full bg-yellow-400 text-purple-800 py-3 rounded-full font-bold hover:bg-yellow-300 transition duration-200">
+                        Subscribe Now
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl p-8 max-w-md w-full mx-4">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">Welcome Back</h2>
+                <button onclick="closeModals()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <form id="loginForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                    <input type="email" id="loginEmail" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    <input type="password" id="loginPassword" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                </div>
+                <button type="submit" class="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 transition duration-200">
+                    Sign In
+                </button>
+            </form>
+            <p class="text-center mt-4 text-gray-600">
+                Don't have an account? 
+                <button onclick="switchToRegister()" class="text-purple-600 hover:underline font-semibold">Sign up</button>
+            </p>
+        </div>
+    </div>
+
+    <!-- Register Modal -->
+    <div id="registerModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl p-8 max-w-md w-full mx-4">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">Create Account</h2>
+                <button onclick="closeModals()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <form id="registerForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                    <input type="text" id="registerName" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                    <input type="email" id="registerEmail" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                    <input type="tel" id="registerPhone" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    <input type="password" id="registerPassword" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                </div>
+                <button type="submit" class="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 transition duration-200">
+                    Create Account
+                </button>
+            </form>
+            <p class="text-center mt-4 text-gray-600">
+                Already have an account? 
+                <button onclick="switchToLogin()" class="text-purple-600 hover:underline font-semibold">Sign in</button>
+            </p>
+        </div>
+    </div>
+
+    <!-- Subscription Section -->
+    <div id="subscriptionSection" class="hidden min-h-full bg-gray-50">
+        <div class="container mx-auto px-4 py-8">
+            <div class="max-w-2xl mx-auto">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-4">Complete Your Subscription</h2>
+                    <p class="text-gray-600">Get unlimited access to professional legal research</p>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+                    <div class="bg-gradient-to-r from-purple-500 to-blue-600 text-white p-6 rounded-lg mb-6">
+                        <h3 class="text-2xl font-bold mb-2">Professional Legal Research</h3>
+                        <p class="text-purple-100 mb-4">Comprehensive guidance for Pakistani law</p>
+                        <div class="text-4xl font-bold">Rs. 2,999/month</div>
+                        <p class="text-purple-100 text-sm">Unlimited legal queries</p>
                     </div>
                     
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Your WhatsApp Number *</label>
-                        <input type="tel" required placeholder="03001234567" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:border-primary focus:outline-none">
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Email Address *</label>
-                        <input type="email" required placeholder="your@email.com" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:border-primary focus:outline-none">
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Transaction ID *</label>
-                        <input type="text" required placeholder="TXN123456789" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:border-primary focus:outline-none">
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Amount Sent *</label>
-                        <input type="number" value="2500" required class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:border-primary focus:outline-none">
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Upload Payment Screenshot</label>
-                        <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition-colors">
-                            <input type="file" id="proofFile" accept="image/*" class="hidden" onchange="handleFileUpload(event)">
-                            <div id="uploadArea" onclick="document.getElementById('proofFile').click()" class="cursor-pointer">
-                                <svg class="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                                </svg>
-                                <p class="text-gray-600 mb-2">Click to upload payment screenshot</p>
-                                <p class="text-gray-400 text-sm">PNG, JPG up to 5MB</p>
+                    <div class="space-y-4 mb-6">
+                        <h4 class="font-semibold text-gray-800 text-lg">✅ What's Included:</h4>
+                        <div class="grid md:grid-cols-2 gap-3 text-sm text-gray-600">
+                            <div class="flex items-center space-x-2">
+                                <i class="fas fa-check text-green-500"></i>
+                                <span>Constitutional Law Guidance</span>
                             </div>
-                            <div id="filePreview" class="hidden mt-4">
-                                <img id="previewImage" class="max-w-full h-32 mx-auto rounded border">
-                                <p id="fileName" class="text-sm text-gray-600 mt-2"></p>
-                                <button type="button" onclick="removeFile()" class="text-red-500 text-sm hover:underline mt-1">Remove</button>
+                            <div class="flex items-center space-x-2">
+                                <i class="fas fa-check text-green-500"></i>
+                                <span>Family Law Procedures</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <i class="fas fa-check text-green-500"></i>
+                                <span>Corporate & Business Law</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <i class="fas fa-check text-green-500"></i>
+                                <span>Property & Real Estate</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <i class="fas fa-check text-green-500"></i>
+                                <span>Employment Law</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <i class="fas fa-check text-green-500"></i>
+                                <span>Criminal Law Procedures</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <i class="fas fa-check text-green-500"></i>
+                                <span>Cyber Law & Digital Rights</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <i class="fas fa-check text-green-500"></i>
+                                <span>International Law</span>
                             </div>
                         </div>
                     </div>
+
+                    <button onclick="initiatePayment()" class="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-4 rounded-lg font-bold text-lg hover:from-purple-700 hover:to-blue-700 transition duration-200">
+                        <i class="fas fa-credit-card mr-2"></i>
+                        Subscribe Now - Pay to SadaPay
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Section -->
+    <div id="paymentSection" class="hidden min-h-full bg-gray-50">
+        <div class="container mx-auto px-4 py-8">
+            <div class="max-w-md mx-auto">
+                <div class="bg-white rounded-xl shadow-lg p-8">
+                    <h2 class="text-2xl font-bold text-center mb-6">💳 SadaPay Payment</h2>
                     
-                    <button type="submit" class="w-full btn-primary py-4 rounded-lg text-lg font-semibold">
-                        Submit Payment Proof & Activate Account
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
+                        <h3 class="font-semibold text-green-800 mb-3">💳 Payment Instructions:</h3>
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                            <p class="text-blue-800 font-semibold text-center">
+                                📱 Pay from ANY app → JazzCash, EasyPaisa, Bank Apps, SadaPay, etc.
+                            </p>
+                            <p class="text-blue-700 text-center text-sm mt-1">
+                                All payments go to our SadaPay account below ⬇️
+                            </p>
+                        </div>
+                        <ol class="text-sm text-green-700 space-y-2">
+                            <li class="flex items-start space-x-2">
+                                <span class="bg-green-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">1</span>
+                                <span>Open your mobile banking app (JazzCash, EasyPaisa, Bank App, SadaPay, etc.)</span>
+                            </li>
+                            <li class="flex items-start space-x-2">
+                                <span class="bg-green-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">2</span>
+                                <span>Send Rs. 2,999 to our SadaPay number: <strong>03XX-XXXXXXX</strong></span>
+                            </li>
+                            <li class="flex items-start space-x-2">
+                                <span class="bg-green-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">3</span>
+                                <span>Copy the transaction ID/reference number from your app</span>
+                            </li>
+                            <li class="flex items-start space-x-2">
+                                <span class="bg-green-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">4</span>
+                                <span>Submit the transaction details below for verification</span>
+                            </li>
+                        </ol>
+                    </div>
+                    
+                    <form id="paymentForm" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Transaction ID / Reference Number</label>
+                            <input type="text" id="transactionId" required placeholder="Enter transaction ID from your payment app" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Amount Sent</label>
+                            <input type="number" id="amountSent" value="2999" readonly class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50">
+                        </div>
+                        <button type="submit" class="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 transition duration-200">
+                            Submit for Verification
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Approval -->
+    <div id="pendingSection" class="hidden min-h-full bg-gray-50">
+        <div class="container mx-auto px-4 py-8">
+            <div class="max-w-md mx-auto">
+                <div class="bg-white rounded-xl shadow-lg p-8 text-center">
+                    <div class="text-6xl mb-6">⏳</div>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Payment Under Review</h2>
+                    <p class="text-gray-600 mb-6">Your payment is being verified by our admin team. You'll get access once approved.</p>
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                        <p class="text-sm text-yellow-800">
+                            <strong>Transaction ID:</strong> <span id="pendingTransactionId"></span><br>
+                            <strong>Status:</strong> Pending Approval
+                        </p>
+                    </div>
+                    <button onclick="logout()" class="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition duration-200">
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="mainApp" class="hidden min-h-full bg-gray-50">
+        <div class="container mx-auto px-4 py-8">
+            <!-- Header -->
+            <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-800">Welcome, <span id="userName"></span>!</h3>
+                        <p class="text-green-600 flex items-center">
+                            <i class="fas fa-check-circle mr-1"></i>
+                            Premium Active
+                        </p>
+                    </div>
+                    <div class="flex space-x-3">
+                        <button id="adminBtn" onclick="showAdmin()" class="hidden bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition duration-200">
+                            <i class="fas fa-crown mr-1"></i>
+                            Admin
+                        </button>
+                        <button onclick="logout()" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition duration-200">
+                            <i class="fas fa-sign-out-alt mr-1"></i>
+                            Logout
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Interface -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="chat-container mb-6" id="chatContainer">
+                    <div class="message bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-xl p-6 mb-4">
+                        <div class="flex items-center mb-3">
+                            <i class="fas fa-robot text-purple-600 text-xl mr-2"></i>
+                            <span class="font-bold text-purple-800">LawBotPakistan</span>
+                        </div>
+                        <div class="text-gray-700">
+                            <p class="mb-4"><strong>Welcome to your professional legal research assistant!</strong></p>
+                            
+                            <p class="mb-4">I provide comprehensive guidance on Pakistani law including:</p>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm mb-4">
+                                <div class="flex items-center space-x-2">
+                                    <i class="fas fa-gavel text-purple-600"></i>
+                                    <span>Constitutional Law</span>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <i class="fas fa-users text-purple-600"></i>
+                                    <span>Family Law</span>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <i class="fas fa-building text-purple-600"></i>
+                                    <span>Corporate Law</span>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <i class="fas fa-home text-purple-600"></i>
+                                    <span>Property Law</span>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <i class="fas fa-briefcase text-purple-600"></i>
+                                    <span>Employment Law</span>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <i class="fas fa-shield-alt text-purple-600"></i>
+                                    <span>Criminal Law</span>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <i class="fas fa-laptop text-purple-600"></i>
+                                    <span>Cyber Law</span>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <i class="fas fa-globe text-purple-600"></i>
+                                    <span>International Law</span>
+                                </div>
+                            </div>
+                            
+                            <p class="text-sm font-medium">Ask me any specific legal question for detailed, professional guidance!</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Typing Indicator -->
+                <div class="typing-indicator mb-4" id="typingIndicator">
+                    <div class="bg-gray-100 rounded-xl p-4 flex items-center space-x-3">
+                        <div class="flex space-x-1">
+                            <div class="dot"></div>
+                            <div class="dot"></div>
+                            <div class="dot"></div>
+                        </div>
+                        <span class="text-gray-600 text-sm">AI is researching your legal question...</span>
+                    </div>
+                </div>
+
+                <!-- Chat Input -->
+                <form id="chatForm" class="flex space-x-3">
+                    <input type="text" id="chatInput" placeholder="Ask your legal question..." class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" required>
+                    <button type="submit" class="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition duration-200">
+                        <i class="fas fa-paper-plane"></i>
                     </button>
                 </form>
-                
-                <div class="text-center text-gray-500 text-sm mt-4">
-                    <p>🔒 Manual verification within 24 hours • WhatsApp confirmation</p>
-                    <p class="mt-2">Contact: 03296564818 (Raahim - WhatsApp) for instant support</p>
-                </div>
             </div>
         </div>
     </div>
 
-    <!-- Pending Approval Screen -->
-    <div id="pending" class="screen">
-        <div class="max-w-2xl mx-auto p-6 mt-20">
-            <div class="bg-white rounded-2xl shadow-lg border p-8 text-center">
-                <div class="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <svg class="w-10 h-10 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                </div>
-                
-                <h2 class="text-3xl font-bold text-gray-900 mb-4">Payment Under Review</h2>
-                <p class="text-gray-600 text-lg mb-6">Your payment proof has been submitted successfully!</p>
-                
-                <div class="bg-yellow-50 p-6 rounded-lg border-l-4 border-yellow-400 mb-6">
-                    <h3 class="font-semibold text-yellow-800 mb-3">⏳ Manual Verification Process</h3>
-                    <ul class="text-yellow-700 text-left space-y-2">
-                        <li>• Our team will verify your payment within 24 hours</li>
-                        <li>• You'll receive WhatsApp confirmation once approved</li>
-                        <li>• Access will be activated immediately after approval</li>
-                        <li>• Monthly renewals also require manual approval</li>
-                    </ul>
-                </div>
-                
-                <div class="bg-blue-50 p-4 rounded-lg mb-6">
-                    <p class="text-blue-800 text-sm">
-                        <strong>📱 WhatsApp Support:</strong> 03296564818 (Raahim)<br>
-                        For urgent queries or payment issues
-                    </p>
-                </div>
-                
-                <div class="space-y-3">
-                    <button class="w-full btn-primary py-3 rounded-lg font-semibold" onclick="checkApprovalStatus()">
-                        Check Approval Status
+    <!-- Admin Panel -->
+    <div id="adminPanel" class="hidden min-h-full bg-gray-50">
+        <div class="container mx-auto px-4 py-8">
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="flex justify-between items-center mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800">
+                        <i class="fas fa-crown text-purple-600 mr-2"></i>
+                        Admin Dashboard
+                    </h2>
+                    <button onclick="hideAdmin()" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition duration-200">
+                        <i class="fas fa-arrow-left mr-1"></i>
+                        Back to Chat
                     </button>
-                    <button class="w-full border border-gray-300 py-3 rounded-lg text-gray-700 hover:bg-gray-50" onclick="showScreen('home')">
-                        Back to Home
-                    </button>
-                    
-                    <!-- Demo Admin Approval Button (Remove in Production) -->
-                    <div class="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                        <p class="text-red-700 text-sm mb-3"><strong>🔧 DEMO ONLY:</strong> Admin approval simulation</p>
-                        <button class="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded font-medium" onclick="simulateAdminApproval()">
-                            ✅ Simulate Admin Approval
-                        </button>
-                        <p class="text-red-600 text-xs mt-2">Remove this section in production!</p>
-                    </div>
                 </div>
-                
-                <div class="mt-6 text-center">
-                    <p class="text-gray-500 text-sm">🔒 Your account will remain locked until manual approval is complete</p>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Chat Screen -->
-    <div id="chat" class="screen">
-        <div class="max-w-4xl mx-auto p-6">
-            <div class="bg-white rounded-2xl shadow-lg border">
-                <div class="p-6 border-b bg-gradient-bg text-white rounded-t-2xl">
-                    <div class="text-center">
-                        <h2 class="text-2xl font-bold mb-2">Law Bot Pakistan</h2>
-                        <p class="opacity-90">Real-time legal research at your fingertips</p>
-                    </div>
-                </div>
-                
-                <div id="chatMessages" class="h-96 overflow-y-auto p-6 space-y-4 bg-gray-50">
-                    <div class="flex items-start space-x-3">
-                        <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
-                            <span class="text-white text-sm">🤖</span>
+                <!-- Stats -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="text-lg font-semibold opacity-90">Total Users</h3>
+                                <div class="text-3xl font-bold" id="totalUsers">0</div>
+                            </div>
+                            <i class="fas fa-users text-3xl opacity-80"></i>
                         </div>
-                        <div class="chat-bubble-bot p-4 max-w-2xl">
-                            <p class="mb-3">Hello! I'm your AI legal assistant with real-time access to Pakistani law databases, Islamic jurisprudence, and international legal resources. I search the web for the most current legal information to answer your questions.</p>
-                            <p class="text-sm text-gray-600">Ask me anything about Pakistani law, Islamic law, constitutional matters, criminal law, civil disputes, or international legal issues.</p>
+                    </div>
+                    <div class="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="text-lg font-semibold opacity-90">Active Subscriptions</h3>
+                                <div class="text-3xl font-bold" id="activeSubscriptions">0</div>
+                            </div>
+                            <i class="fas fa-check-circle text-3xl opacity-80"></i>
+                        </div>
+                    </div>
+                    <div class="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white rounded-xl p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="text-lg font-semibold opacity-90">Pending Approvals</h3>
+                                <div class="text-3xl font-bold" id="pendingApprovals">0</div>
+                            </div>
+                            <i class="fas fa-clock text-3xl opacity-80"></i>
                         </div>
                     </div>
                 </div>
-                
-                <div class="p-6 border-t bg-white rounded-b-2xl">
-                    <div class="flex space-x-3 mb-4">
-                        <input 
-                            type="text" 
-                            id="chatInput"
-                            placeholder="Ask your legal question..."
-                            class="flex-1 border border-gray-300 rounded-lg px-4 py-3 focus:border-primary focus:outline-none focus:ring-2 focus:ring-blue-100"
-                        >
-                        <button class="btn-primary px-6 py-3 rounded-lg font-medium" onclick="sendMessage()">
-                            Send
-                        </button>
+
+                <!-- Pending Payments -->
+                <div class="mb-8">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">
+                        <i class="fas fa-credit-card text-purple-600 mr-2"></i>
+                        Pending Payment Approvals
+                    </h3>
+                    <div id="pendingPaymentsList" class="space-y-4">
+                        <!-- Pending payments will be populated here -->
                     </div>
-                    
-                    <div class="flex flex-wrap gap-2 mb-4">
-                        <button class="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-full text-sm border" onclick="setQuickQuery('latest Supreme Court judgments on property rights')">
-                            Latest property law updates
-                        </button>
-                        <button class="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-full text-sm border" onclick="setQuickQuery('current Islamic banking regulations Pakistan 2024')">
-                            Islamic banking laws 2024
-                        </button>
-                        <button class="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-full text-sm border" onclick="setQuickQuery('new amendments to Pakistan Penal Code')">
-                            Recent PPC amendments
-                        </button>
-                    </div>
-                    
-                    <div class="text-center">
-                        <p class="text-xs text-gray-500">💡 Real-time legal research • Always consult a qualified lawyer for specific advice</p>
+                </div>
+
+                <!-- All Users -->
+                <div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">
+                        <i class="fas fa-users text-purple-600 mr-2"></i>
+                        All Users
+                    </h3>
+                    <div id="allUsersList" class="space-y-4">
+                        <!-- All users will be populated here -->
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-
-    <!-- About Screen -->
-    <div id="about" class="screen">
-        <div class="max-w-4xl mx-auto p-6 mt-20">
-            <div class="bg-white rounded-2xl shadow-lg border p-8">
-                <div class="text-center mb-8">
-                    <h2 class="text-3xl font-bold text-gray-900 mb-4">About Law Bot Pakistan</h2>
-                    <p class="text-gray-600 text-lg">Revolutionary AI-powered legal research for Pakistan</p>
-                </div>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                    <div>
-                        <h3 class="text-xl font-semibold text-primary mb-4">🤖 What We Do</h3>
-                        <p class="text-gray-600 mb-4">Law Bot Pakistan is the first AI legal assistant specifically designed for Pakistani law. We provide real-time access to:</p>
-                        <ul class="space-y-2 text-gray-600">
-                            <li>• Current Pakistani legislation and amendments</li>
-                            <li>• Supreme Court and High Court judgments</li>
-                            <li>• Islamic law and Sharia principles</li>
-                            <li>• Constitutional law and fundamental rights</li>
-                            <li>• Criminal, civil, and family law guidance</li>
-                        </ul>
-                    </div>
-                    
-                    <div>
-                        <h3 class="text-xl font-semibold text-primary mb-4">⚡ How It Works</h3>
-                        <p class="text-gray-600 mb-4">Our advanced AI system searches multiple legal databases in real-time:</p>
-                        <ul class="space-y-2 text-gray-600">
-                            <li>• Live web search of legal databases</li>
-                            <li>• Analysis of recent case precedents</li>
-                            <li>• Cross-referencing with Islamic jurisprudence</li>
-                            <li>• Instant comprehensive legal responses</li>
-                            <li>• Available 24/7 in English and Urdu</li>
-                        </ul>
-                    </div>
-                </div>
-                
-                <div class="text-center">
-                    <button class="btn-primary px-8 py-3 rounded-lg font-semibold" onclick="showScreen('home')">
-                        Start Using Law Bot Pakistan
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- FAQ Screen -->
-    <div id="faq" class="screen">
-        <div class="max-w-4xl mx-auto p-6 mt-20">
-            <div class="bg-white rounded-2xl shadow-lg border p-8">
-                <div class="text-center mb-8">
-                    <h2 class="text-3xl font-bold text-gray-900 mb-4">Frequently Asked Questions</h2>
-                    <p class="text-gray-600">Everything you need to know about Law Bot Pakistan</p>
-                </div>
-                
-                <div class="space-y-6">
-                    <div class="border-b pb-6">
-                        <h3 class="text-lg font-semibold text-primary mb-3">❓ What makes Law Bot Pakistan different from other legal research tools?</h3>
-                        <p class="text-gray-600">Law Bot Pakistan is specifically designed for Pakistani law with real-time web search capabilities. Unlike static legal databases, we search current legal sources, recent judgments, and live legal updates to provide the most current information available.</p>
-                    </div>
-                    
-                    <div class="border-b pb-6">
-                        <h3 class="text-lg font-semibold text-primary mb-3">💰 How does the manual payment system work?</h3>
-                        <p class="text-gray-600">Simply send Rs. 2,500 to our SadaPay account (03314619402 - Rabia Hayi), then submit the transaction details through our form. We verify payments within 2 hours and activate your account immediately. You'll get WhatsApp confirmation once verified.</p>
-                    </div>
-                    
-                    <div class="border-b pb-6">
-                        <h3 class="text-lg font-semibold text-primary mb-3">🔍 What legal areas does Law Bot Pakistan cover?</h3>
-                        <p class="text-gray-600 mb-3">We cover all major areas of Pakistani law:</p>
-                        <ul class="text-gray-600 space-y-1 ml-4">
-                            <li>• Constitutional Law and Fundamental Rights</li>
-                            <li>• Criminal Law (Pakistan Penal Code, CrPC)</li>
-                            <li>• Civil Law (Contracts, Property, Torts)</li>
-                            <li>• Family Law (Marriage, Divorce, Inheritance)</li>
-                            <li>• Islamic Law and Sharia Principles</li>
-                            <li>• Commercial and Corporate Law</li>
-                            <li>• International Law and Treaties</li>
-                        </ul>
-                    </div>
-                    
-                    <div class="border-b pb-6">
-                        <h3 class="text-lg font-semibold text-primary mb-3">⚖️ Can I use this for actual legal cases?</h3>
-                        <p class="text-gray-600">Law Bot Pakistan provides comprehensive legal research and information, but it's not a substitute for professional legal advice. Always consult with a qualified Pakistani advocate or barrister for specific legal matters and court representation.</p>
-                    </div>
-                    
-                    <div class="border-b pb-6">
-                        <h3 class="text-lg font-semibold text-primary mb-3">📞 How can I get support?</h3>
-                        <p class="text-gray-600">For payment verification or technical support, WhatsApp us at 03296564818 (Raahim). Premium subscribers get priority support within 24 hours for urgent legal research needs.</p>
-                    </div>
-                </div>
-                
-                <div class="text-center mt-8">
-                    <button class="btn-primary px-8 py-3 rounded-lg font-semibold" onclick="showScreen('home')">
-                        Get Started Now
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Contact Screen -->
-    <div id="contact" class="screen">
-        <div class="max-w-4xl mx-auto p-6 mt-20">
-            <div class="bg-white rounded-2xl shadow-lg border p-8">
-                <div class="text-center mb-8">
-                    <h2 class="text-3xl font-bold text-gray-900 mb-4">Contact Us</h2>
-                    <p class="text-gray-600">Get in touch with the Law Bot Pakistan team</p>
-                </div>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div>
-                        <h3 class="text-xl font-semibold text-primary mb-6">📞 Get In Touch</h3>
-                        
-                        <div class="space-y-4">
-                            <div class="flex items-center">
-                                <div class="w-12 h-12 bg-primary rounded-full flex items-center justify-center mr-4">
-                                    <span class="text-white">💳</span>
-                                </div>
-                                <div>
-                                    <h4 class="font-semibold">Payment & Support</h4>
-                                    <p class="text-gray-600">WhatsApp: 03296564818 (Raahim)</p>
-                                </div>
-                            </div>
-                            
-                            <div class="flex items-center">
-                                <div class="w-12 h-12 bg-primary rounded-full flex items-center justify-center mr-4">
-                                    <span class="text-white">📧</span>
-                                </div>
-                                <div>
-                                    <h4 class="font-semibold">Email Support</h4>
-                                    <p class="text-gray-600">support@lawbotpakistan.com</p>
-                                </div>
-                            </div>
-                            
-                            <div class="flex items-center">
-                                <div class="w-12 h-12 bg-primary rounded-full flex items-center justify-center mr-4">
-                                    <span class="text-white">🏢</span>
-                                </div>
-                                <div>
-                                    <h4 class="font-semibold">Office</h4>
-                                    <p class="text-gray-600">13 Fane Road 1, Asif Chamber, Lahore</p>
-                                    <p class="text-gray-500 text-sm">Serving all of Pakistan</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div>
-                        <h3 class="text-xl font-semibold text-primary mb-6">📝 Send Message</h3>
-                        
-                        <form onsubmit="submitContactForm(event)" class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Name</label>
-                                <input type="text" required class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:border-primary focus:outline-none" placeholder="Your full name">
-                            </div>
-                            
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                                <input type="email" required class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:border-primary focus:outline-none" placeholder="your@email.com">
-                            </div>
-                            
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Message</label>
-                                <textarea required rows="5" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:border-primary focus:outline-none" placeholder="Describe your question or issue..."></textarea>
-                            </div>
-                            
-                            <button type="submit" class="w-full btn-primary py-3 rounded-lg font-semibold">
-                                Send Message
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Notification -->
-    <div id="notification" class="notification">
-        Payment proof submitted! Account activated.
     </div>
 
     <script>
-        function showScreen(screenId) {
-            document.querySelectorAll('.screen').forEach(screen => {
-                screen.classList.remove('active');
-            });
-            document.getElementById(screenId).classList.add('active');
+        // Global state
+        let currentUser = null;
+        let users = JSON.parse(localStorage.getItem('lawbot_users') || '[]');
+        let payments = JSON.parse(localStorage.getItem('lawbot_payments') || '[]');
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuthState();
+            
+            // Form handlers
+            document.getElementById('loginForm').addEventListener('submit', handleLogin);
+            document.getElementById('registerForm').addEventListener('submit', handleRegister);
+            document.getElementById('paymentForm').addEventListener('submit', handlePaymentSubmission);
+            document.getElementById('chatForm').addEventListener('submit', handleChat);
+        });
+
+        function checkAuthState() {
+            const savedUser = localStorage.getItem('lawbot_currentUser');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                if (currentUser.subscriptionStatus === 'active') {
+                    showMainApp();
+                } else if (currentUser.subscriptionStatus === 'pending') {
+                    showPendingApproval();
+                } else {
+                    showSubscription();
+                }
+            }
         }
 
-        function simulateLogin() {
-            showNotification('✅ Successfully signed in!');
-            showScreen('payment');
+        // Navigation functions
+        function scrollToSection(sectionId) {
+            document.getElementById(sectionId).scrollIntoView({ behavior: 'smooth' });
+            toggleMobileMenu(); // Close mobile menu if open
         }
 
-        function submitPayment(event) {
-            event.preventDefault();
-            showNotification('✅ Payment proof submitted! Awaiting manual approval within 24 hours.');
-            setTimeout(() => {
-                showScreen('pending');
-            }, 2000);
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobileMenu');
+            menu.classList.toggle('hidden');
         }
 
-        function sendMessage() {
-            // Check if user is approved before allowing chat
-            if (!checkUserAccess()) {
+        // Modal functions
+        function showLoginModal() {
+            document.getElementById('loginModal').classList.remove('hidden');
+        }
+
+        function showRegisterModal() {
+            document.getElementById('registerModal').classList.remove('hidden');
+        }
+
+        function closeModals() {
+            document.getElementById('loginModal').classList.add('hidden');
+            document.getElementById('registerModal').classList.add('hidden');
+        }
+
+        function switchToRegister() {
+            closeModals();
+            showRegisterModal();
+        }
+
+        function switchToLogin() {
+            closeModals();
+            showLoginModal();
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            const user = users.find(u => u.email === email && u.password === password);
+            if (user) {
+                currentUser = user;
+                localStorage.setItem('lawbot_currentUser', JSON.stringify(currentUser));
+                closeModals();
+                
+                if (user.subscriptionStatus === 'active') {
+                    showMainApp();
+                } else if (user.subscriptionStatus === 'pending') {
+                    showPendingApproval();
+                } else {
+                    showSubscription();
+                }
+            } else {
+                alert('Invalid credentials. Please try again.');
+            }
+        }
+
+        function handleRegister(e) {
+            e.preventDefault();
+            const name = document.getElementById('registerName').value;
+            const email = document.getElementById('registerEmail').value;
+            const phone = document.getElementById('registerPhone').value;
+            const password = document.getElementById('registerPassword').value;
+
+            // Check if user already exists
+            if (users.find(u => u.email === email)) {
+                alert('User with this email already exists.');
                 return;
             }
+
+            const newUser = {
+                id: Date.now().toString(),
+                name,
+                email,
+                phone,
+                password,
+                subscriptionStatus: 'none',
+                isAdmin: email === 'admin@lawbotpakistan.com',
+                registeredAt: new Date().toISOString()
+            };
+
+            users.push(newUser);
+            localStorage.setItem('lawbot_users', JSON.stringify(users));
             
+            currentUser = newUser;
+            localStorage.setItem('lawbot_currentUser', JSON.stringify(currentUser));
+            
+            closeModals();
+            showSubscription();
+        }
+
+        function showSubscription() {
+            hideAllSections();
+            document.getElementById('subscriptionSection').classList.remove('hidden');
+        }
+
+        function initiatePayment() {
+            hideAllSections();
+            document.getElementById('paymentSection').classList.remove('hidden');
+        }
+
+        function handlePaymentSubmission(e) {
+            e.preventDefault();
+            const transactionId = document.getElementById('transactionId').value;
+            const amount = document.getElementById('amountSent').value;
+
+            const payment = {
+                id: Date.now().toString(),
+                userId: currentUser.id,
+                transactionId,
+                amount: parseInt(amount),
+                status: 'pending',
+                submittedAt: new Date().toISOString()
+            };
+
+            payments.push(payment);
+            localStorage.setItem('lawbot_payments', JSON.stringify(payments));
+
+            // Update user status
+            currentUser.subscriptionStatus = 'pending';
+            currentUser.pendingTransactionId = transactionId;
+            
+            // Update in users array
+            const userIndex = users.findIndex(u => u.id === currentUser.id);
+            users[userIndex] = currentUser;
+            localStorage.setItem('lawbot_users', JSON.stringify(users));
+            localStorage.setItem('lawbot_currentUser', JSON.stringify(currentUser));
+
+            showPendingApproval();
+        }
+
+        function showPendingApproval() {
+            hideAllSections();
+            document.getElementById('pendingSection').classList.remove('hidden');
+            document.getElementById('pendingTransactionId').textContent = currentUser.pendingTransactionId || 'N/A';
+        }
+
+        function showMainApp() {
+            hideAllSections();
+            document.getElementById('mainApp').classList.remove('hidden');
+            document.getElementById('userName').textContent = currentUser.name;
+            
+            if (currentUser.isAdmin) {
+                document.getElementById('adminBtn').classList.remove('hidden');
+            }
+        }
+
+        function hideAllSections() {
+            document.getElementById('heroSection').classList.add('hidden');
+            document.getElementById('subscriptionSection').classList.add('hidden');
+            document.getElementById('paymentSection').classList.add('hidden');
+            document.getElementById('pendingSection').classList.add('hidden');
+            document.getElementById('mainApp').classList.add('hidden');
+            document.getElementById('adminPanel').classList.add('hidden');
+        }
+
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('lawbot_currentUser');
+            hideAllSections();
+            document.getElementById('heroSection').classList.remove('hidden');
+        }
+
+        // Chat functionality
+        function handleChat(e) {
+            e.preventDefault();
             const input = document.getElementById('chatInput');
             const message = input.value.trim();
             
-            if (message) {
-                addChatMessage(message, true);
-                input.value = '';
-                
-                setTimeout(() => {
-                    addBotResponse(message);
-                }, 1000);
-            }
-        }
+            if (!message) return;
 
-        function addChatMessage(message, isUser = false) {
-            const chatMessages = document.getElementById('chatMessages');
-            const messageDiv = document.createElement('div');
+            addMessage(message, 'user');
+            input.value = '';
             
-            if (isUser) {
-                messageDiv.innerHTML = `
-                    <div class="flex items-start space-x-3 justify-end">
-                        <div class="chat-bubble-user p-4 max-w-2xl">
-                            <p class="font-medium">${message}</p>
-                        </div>
-                        <div class="w-10 h-10 bg-gray-400 rounded-full flex items-center justify-center flex-shrink-0">
-                            <span class="text-white text-sm">👤</span>
-                        </div>
-                    </div>
-                `;
-            } else {
-                messageDiv.innerHTML = `
-                    <div class="flex items-start space-x-3">
-                        <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
-                            <span class="text-white text-sm">🤖</span>
-                        </div>
-                        <div class="chat-bubble-bot p-4 max-w-2xl">
-                            <div>${message}</div>
-                        </div>
-                    </div>
-                `;
-            }
+            // Show typing indicator
+            document.getElementById('typingIndicator').classList.add('show');
             
-            messageDiv.className = 'fade-in';
-            chatMessages.appendChild(messageDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-
-        function addBotResponse(userMessage) {
-            const lowerMessage = userMessage.toLowerCase();
-            let response = '';
-            
-            if (lowerMessage.includes('marriage') || lowerMessage.includes('nikkah')) {
-                response = `
-                    <div class="legal-response">
-                        <h4 class="font-semibold text-primary mb-3">🏛️ Marriage Laws in Pakistan</h4>
-                        <div class="legal-section">
-                            <h5 class="font-medium text-primary mb-2">📋 Muslim Family Laws Ordinance 1961</h5>
-                            <ul class="text-sm space-y-1 ml-4">
-                                <li>• Registration mandatory within 30 days</li>
-                                <li>• Minimum age: 18 for males, 16 for females</li>
-                                <li>• Two adult Muslim witnesses required</li>
-                                <li>• Mahr (dower) amount must be specified</li>
-                            </ul>
-                        </div>
-                        <div class="case-reference">
-                            <strong>Recent Cases:</strong> Mst. Kaneez Fatima v. Wali Muhammad (1993 SCMR 1718)
-                        </div>
-                        <div class="bg-blue-50 p-3 rounded mt-3">
-                            <p class="text-blue-800 text-sm"><strong>💡 Legal Advice:</strong> Always register your marriage with the Union Council within 30 days to ensure legal protection.</p>
-                        </div>
-                    </div>
-                `;
-            } else if (lowerMessage.includes('property') || lowerMessage.includes('land')) {
-                response = `
-                    <div class="legal-response">
-                        <h4 class="font-semibold text-primary mb-3">🏠 Property Law in Pakistan</h4>
-                        <div class="legal-section">
-                            <h5 class="font-medium text-primary mb-2">📋 Transfer of Property Act 1882</h5>
-                            <ul class="text-sm space-y-1 ml-4">
-                                <li>• Registration required for properties above Rs. 100</li>
-                                <li>• Stamp duty varies by province (1-3% of value)</li>
-                                <li>• Islamic inheritance law applies to Muslim owners</li>
-                                <li>• Title verification through registrar office mandatory</li>
-                            </ul>
-                        </div>
-                        <div class="case-reference">
-                            <strong>Key Cases:</strong> Muhammad Akram v. State (2023 PCrLJ 1456)
-                        </div>
-                        <div class="bg-yellow-50 p-3 rounded mt-3">
-                            <p class="text-yellow-800 text-sm"><strong>⚠️ Important:</strong> Always verify property documents through relevant registrar office before purchase.</p>
-                        </div>
-                    </div>
-                `;
-            } else if (lowerMessage.includes('weapon') || lowerMessage.includes('arms')) {
-                response = `
-                    <div class="legal-response">
-                        <h4 class="font-semibold text-primary mb-3">🔫 Arms & Weapons Law</h4>
-                        <div class="legal-section">
-                            <h5 class="font-medium text-primary mb-2">📋 Pakistan Arms Ordinance 1965</h5>
-                            <ul class="text-sm space-y-1 ml-4">
-                                <li>• Section 13: Prohibition of carrying arms without license</li>
-                                <li>• Punishment: Up to 3 years imprisonment + Rs. 50,000 fine</li>
-                                <li>• Cognizable and non-bailable offense</li>
-                                <li>• Weapon confiscation by authorities</li>
-                            </ul>
-                        </div>
-                        <div class="bg-red-50 p-3 rounded mt-3">
-                            <p class="text-red-800 text-sm"><strong>⚠️ Legal Consequences:</strong> Arrest without warrant, criminal record, bail difficulties. Contact criminal lawyer immediately if charged.</p>
-                        </div>
-                    </div>
-                `;
-            } else {
-                response = `
-                    <div class="legal-response">
-                        <h4 class="font-semibold text-primary mb-3">🔍 Legal Research Results</h4>
-                        <p class="mb-3">I've searched Pakistani legal databases for information related to your query. Here's what I found:</p>
-                        <div class="legal-section">
-                            <h5 class="font-medium text-primary mb-2">📋 Relevant Legal Areas</h5>
-                            <ul class="text-sm space-y-1 ml-4">
-                                <li>• Constitutional Law (Fundamental Rights)</li>
-                                <li>• Criminal Law (Pakistan Penal Code)</li>
-                                <li>• Civil Law (Contracts, Property)</li>
-                                <li>• Family Law (Marriage, Divorce)</li>
-                                <li>• Islamic Law (Sharia principles)</li>
-                            </ul>
-                        </div>
-                        <div class="bg-blue-50 p-3 rounded mt-3">
-                            <p class="text-blue-800 text-sm"><strong>💡 For Specific Advice:</strong> Please provide more details about your legal question for targeted research and current case precedents.</p>
-                        </div>
-                    </div>
-                `;
-            }
-            
-            addChatMessage(response, false);
-        }
-
-        function setQuickQuery(query) {
-            document.getElementById('chatInput').value = query;
-        }
-
-        function submitContactForm(event) {
-            event.preventDefault();
-            showNotification('Message sent successfully! We will respond within 24 hours.');
-            event.target.reset();
-        }
-
-        function copyToClipboard(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                showNotification(`Copied: ${text}`);
-            }).catch(() => {
-                const textArea = document.createElement('textarea');
-                textArea.value = text;
-                document.body.appendChild(textArea);
-                textArea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textArea);
-                showNotification(`Copied: ${text}`);
-            });
-        }
-
-        function showNotification(message) {
-            const notification = document.getElementById('notification');
-            notification.textContent = message;
-            notification.classList.add('show');
-            
+            // Simulate AI response (Replace with Gemini API)
             setTimeout(() => {
-                notification.classList.remove('show');
-            }, 4000);
+                document.getElementById('typingIndicator').classList.remove('show');
+                generateAIResponse(message);
+            }, 2000);
         }
 
-        function checkApprovalStatus() {
-            // In real implementation, this would check backend API
-            // For demo purposes, showing pending status
-            showNotification('⏳ Still pending approval. You will receive WhatsApp confirmation once approved.');
+        function addMessage(content, sender) {
+            const chatContainer = document.getElementById('chatContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message mb-4 ${sender === 'user' ? 'text-right' : ''}`;
+            
+            const isUser = sender === 'user';
+            const bgColor = isUser ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white' : 'bg-gray-100 text-gray-800';
+            const alignment = isUser ? 'ml-auto' : 'mr-auto';
+            
+            messageDiv.innerHTML = `
+                <div class="${bgColor} ${alignment} rounded-xl p-4 max-w-3xl">
+                    ${isUser ? '' : '<div class="flex items-center mb-2"><i class="fas fa-robot mr-2"></i><span class="font-semibold">LawBotPakistan</span></div>'}
+                    <div class="whitespace-pre-wrap">${content}</div>
+                </div>
+            `;
+            
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
-        // Simulate admin approval (for demo - remove in production)
-        function simulateAdminApproval() {
-            localStorage.setItem('userApproved', 'true');
-            showNotification('✅ Account approved! You can now access the chat.');
-            showScreen('chat');
+        function generateAIResponse(question) {
+            // This is where you'll integrate with Gemini API
+            // For now, using comprehensive legal responses
+            
+            const legalResponse = `**Professional Legal Guidance:**
+
+I can provide comprehensive assistance with Pakistani law across all major areas:
+
+**🏛️ Constitutional Law**
+• Fundamental rights under Articles 8-28
+• Government structure and constitutional interpretation
+• Judicial review and constitutional petitions
+
+**👨‍👩‍👧‍👦 Family Law**
+• Marriage contracts and registration procedures
+• Divorce laws (Khula, Mubarat, Talaq)
+• Child custody and maintenance laws
+• Inheritance under Islamic and civil law
+
+**🏢 Corporate & Business Law**
+• Company registration with SECP
+• Corporate compliance and governance
+• Partnership and sole proprietorship laws
+• Tax obligations and regulatory requirements
+
+**🏠 Property Law**
+• Property transfer procedures and documentation
+• Land record verification and mutation
+• Property disputes and legal remedies
+• Registration requirements and stamp duties
+
+**⚖️ Civil & Criminal Law**
+• Contract law and breach remedies
+• Tort claims and compensation
+• Criminal procedure code and FIR filing
+• Bail applications and legal procedures
+
+**💼 Employment Law**
+• Labor laws and worker rights
+• Employment contracts and termination
+• Social security and benefits
+• Industrial relations and dispute resolution
+
+**💻 Cyber Law**
+• Prevention of Electronic Crimes Act 2016
+• Data protection and privacy rights
+• E-commerce regulations and digital contracts
+• Cybercrime reporting and legal remedies
+
+**🌍 International Law**
+• Immigration and visa procedures
+• Cross-border business transactions
+• International trade regulations
+• Diplomatic and consular services
+
+**Please ask a specific legal question, and I'll provide detailed guidance with relevant statutory references, procedures, and case law.**
+
+*Note: This information is for guidance only. Always consult a qualified lawyer for specific legal advice.*`;
+
+            addMessage(legalResponse, 'bot');
         }
 
-        // Check if user is approved before allowing chat access
-        function checkUserAccess() {
-            const isApproved = localStorage.getItem('userApproved');
-            if (!isApproved) {
-                showNotification('❌ Access denied. Please complete payment and wait for approval.');
-                showScreen('pending');
-                return false;
+        // Admin functionality
+        function showAdmin() {
+            if (!currentUser.isAdmin) return;
+            
+            hideAllSections();
+            document.getElementById('adminPanel').classList.remove('hidden');
+            loadAdminData();
+        }
+
+        function hideAdmin() {
+            showMainApp();
+        }
+
+        function loadAdminData() {
+            // Update stats
+            document.getElementById('totalUsers').textContent = users.length;
+            document.getElementById('activeSubscriptions').textContent = users.filter(u => u.subscriptionStatus === 'active').length;
+            document.getElementById('pendingApprovals').textContent = payments.filter(p => p.status === 'pending').length;
+
+            // Load pending payments
+            loadPendingPayments();
+            loadAllUsers();
+        }
+
+        function loadPendingPayments() {
+            const container = document.getElementById('pendingPaymentsList');
+            const pendingPayments = payments.filter(p => p.status === 'pending');
+            
+            if (pendingPayments.length === 0) {
+                container.innerHTML = '<div class="text-center py-8 text-gray-500"><i class="fas fa-check-circle text-4xl mb-2"></i><p>No pending payments</p></div>';
+                return;
             }
-            return true;
+
+            container.innerHTML = pendingPayments.map(payment => {
+                const user = users.find(u => u.id === payment.userId);
+                return `
+                    <div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <h4 class="font-bold text-gray-800 text-lg">${user?.name || 'Unknown User'}</h4>
+                                <p class="text-gray-600 mb-2">${user?.email || 'No email'}</p>
+                                <div class="space-y-1 text-sm text-gray-600">
+                                    <p><strong>Transaction ID:</strong> ${payment.transactionId}</p>
+                                    <p><strong>Amount:</strong> Rs. ${payment.amount.toLocaleString()}</p>
+                                    <p><strong>Submitted:</strong> ${new Date(payment.submittedAt).toLocaleString()}</p>
+                                </div>
+                            </div>
+                            <div class="flex space-x-2 ml-4">
+                                <button onclick="approvePayment('${payment.id}')" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700 transition duration-200">
+                                    <i class="fas fa-check mr-1"></i>Approve
+                                </button>
+                                <button onclick="rejectPayment('${payment.id}')" class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-red-700 transition duration-200">
+                                    <i class="fas fa-times mr-1"></i>Reject
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
         }
 
-        function handleFileUpload(event) {
-            const file = event.target.files[0];
-            if (file) {
-                if (file.size > 5 * 1024 * 1024) {
-                    showNotification('❌ File too large. Please select a file under 5MB.');
-                    return;
-                }
-                
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById('previewImage').src = e.target.result;
-                    document.getElementById('fileName').textContent = file.name;
-                    document.getElementById('uploadArea').classList.add('hidden');
-                    document.getElementById('filePreview').classList.remove('hidden');
+        function loadAllUsers() {
+            const container = document.getElementById('allUsersList');
+            
+            container.innerHTML = users.map(user => {
+                const statusColors = {
+                    'active': 'text-green-600 bg-green-50',
+                    'pending': 'text-yellow-600 bg-yellow-50',
+                    'none': 'text-gray-600 bg-gray-50'
                 };
-                reader.readAsDataURL(file);
-                showNotification('✅ Payment screenshot uploaded successfully!');
+                const statusColor = statusColors[user.subscriptionStatus] || 'text-gray-600 bg-gray-50';
+
+                return `
+                    <div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <h4 class="font-bold text-gray-800 text-lg flex items-center">
+                                    ${user.name} 
+                                    ${user.isAdmin ? '<i class="fas fa-crown text-purple-600 ml-2"></i>' : ''}
+                                </h4>
+                                <p class="text-gray-600 mb-2">${user.email}</p>
+                                <div class="space-y-1 text-sm text-gray-600">
+                                    <p><strong>Phone:</strong> ${user.phone || 'Not provided'}</p>
+                                    <p><strong>Registered:</strong> ${new Date(user.registeredAt).toLocaleString()}</p>
+                                </div>
+                                <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold ${statusColor} mt-2">
+                                    ${user.subscriptionStatus.toUpperCase()}
+                                </span>
+                            </div>
+                            <div class="flex space-x-2 ml-4">
+                                ${user.subscriptionStatus === 'active' ? 
+                                    `<button onclick="deactivateUser('${user.id}')" class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-red-700 transition duration-200">
+                                        <i class="fas fa-ban mr-1"></i>Deactivate
+                                    </button>` :
+                                    `<button onclick="activateUser('${user.id}')" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700 transition duration-200">
+                                        <i class="fas fa-check mr-1"></i>Activate
+                                    </button>`
+                                }
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function approvePayment(paymentId) {
+            const payment = payments.find(p => p.id === paymentId);
+            if (!payment) return;
+
+            // Update payment status
+            payment.status = 'approved';
+            payment.approvedAt = new Date().toISOString();
+
+            // Update user subscription
+            const user = users.find(u => u.id === payment.userId);
+            if (user) {
+                user.subscriptionStatus = 'active';
+                user.subscriptionStartDate = new Date().toISOString();
+                user.subscriptionEndDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(); // 30 days
+            }
+
+            // Save changes
+            localStorage.setItem('lawbot_payments', JSON.stringify(payments));
+            localStorage.setItem('lawbot_users', JSON.stringify(users));
+
+            // Refresh admin panel
+            loadAdminData();
+            
+            alert('Payment approved successfully! User now has active subscription.');
+        }
+
+        function rejectPayment(paymentId) {
+            const payment = payments.find(p => p.id === paymentId);
+            if (!payment) return;
+
+            // Update payment status
+            payment.status = 'rejected';
+            payment.rejectedAt = new Date().toISOString();
+
+            // Update user subscription
+            const user = users.find(u => u.id === payment.userId);
+            if (user) {
+                user.subscriptionStatus = 'none';
+            }
+
+            // Save changes
+            localStorage.setItem('lawbot_payments', JSON.stringify(payments));
+            localStorage.setItem('lawbot_users', JSON.stringify(users));
+
+            // Refresh admin panel
+            loadAdminData();
+            
+            alert('Payment rejected. User subscription remains inactive.');
+        }
+
+        function activateUser(userId) {
+            const user = users.find(u => u.id === userId);
+            if (user) {
+                user.subscriptionStatus = 'active';
+                user.subscriptionStartDate = new Date().toISOString();
+                user.subscriptionEndDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+                
+                localStorage.setItem('lawbot_users', JSON.stringify(users));
+                loadAdminData();
+                alert('User activated successfully!');
             }
         }
 
-        function removeFile() {
-            document.getElementById('proofFile').value = '';
-            document.getElementById('uploadArea').classList.remove('hidden');
-            document.getElementById('filePreview').classList.add('hidden');
-            showNotification('📄 Screenshot removed');
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const chatInput = document.getElementById('chatInput');
-            if (chatInput) {
-                chatInput.addEventListener('keypress', function(e) {
-                    if (e.key === 'Enter') {
-                        sendMessage();
-                    }
-                });
+        function deactivateUser(userId) {
+            const user = users.find(u => u.id === userId);
+            if (user) {
+                user.subscriptionStatus = 'none';
+                
+                localStorage.setItem('lawbot_users', JSON.stringify(users));
+                loadAdminData();
+                alert('User deactivated.');
             }
-        });
+        }
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98b64cfd032f2704',t:'MTc1OTkzMzQ1Ni4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98b71990415e2704',t:'MTc1OTk0MTgzNS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
