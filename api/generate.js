@@ -1,22 +1,22 @@
-// api/generate.js
-export default async function handler(req, res) {
+export const config = {
+  runtime: "edge",
+};
+
+export default async function handler(req) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
   try {
-    let body = "";
-    req.on("data", chunk => (body += chunk.toString()));
-    await new Promise(resolve => req.on("end", resolve));
-    const { query } = JSON.parse(body || "{}");
-
-    if (!query) {
-      return res.status(400).json({ error: "No query provided" });
-    }
-
+    const { query } = await req.json();
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+
     const response = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" + GEMINI_API_KEY,
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" +
+        GEMINI_API_KEY,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -27,7 +27,7 @@ export default async function handler(req, res) {
                 {
                   text:
                     query +
-                    "\nFocus on Pakistani law and cite pakistancode.gov.pk when possible.",
+                    "\nFocus: Provide up-to-date Pakistani law info and sources from pakistancode.gov.pk.",
                 },
               ],
             },
@@ -37,11 +37,19 @@ export default async function handler(req, res) {
     );
 
     const data = await response.json();
-    const answer =
-      data?.candidates?.[0]?.content?.parts?.[0]?.text || "No legal data found.";
-    return res.status(200).json({ reply: answer });
-  } catch (err) {
-    console.error("Gemini error:", err);
-    return res.status(500).json({ error: "Internal server error" });
+    const reply =
+      data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+      "No legal data found.";
+
+    return new Response(JSON.stringify({ reply }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    console.error("Gemini API Error:", error);
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 }
