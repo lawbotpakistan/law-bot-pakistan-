@@ -1,20 +1,21 @@
-export const config = {
-  runtime: "edge",
-};
-
-export default async function handler(req) {
+export default async function handler(req, res) {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405,
-      headers: { "Content-Type": "application/json" },
-    });
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
   try {
-    const { query } = await req.json();
-    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+    const body = await new Promise((resolve, reject) => {
+      let data = "";
+      req.on("data", chunk => (data += chunk));
+      req.on("end", () => resolve(JSON.parse(data || "{}")));
+      req.on("error", reject);
+    });
 
-    const response = await fetch(
+    const { query } = body;
+    if (!query) return res.status(400).json({ error: "No query provided" });
+
+    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+    const r = await fetch(
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" +
         GEMINI_API_KEY,
       {
@@ -27,7 +28,7 @@ export default async function handler(req) {
                 {
                   text:
                     query +
-                    "\nFocus: Provide up-to-date Pakistani law info and sources from pakistancode.gov.pk.",
+                    "\nFocus: Pakistani law. Include citations from pakistancode.gov.pk when relevant.",
                 },
               ],
             },
@@ -36,20 +37,14 @@ export default async function handler(req) {
       }
     );
 
-    const data = await response.json();
+    const data = await r.json();
     const reply =
       data?.candidates?.[0]?.content?.parts?.[0]?.text ||
       "No legal data found.";
 
-    return new Response(JSON.stringify({ reply }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
-  } catch (error) {
-    console.error("Gemini API Error:", error);
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return res.status(200).json({ reply });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 }
