@@ -1,29 +1,34 @@
-// Force Node runtime so we can use req, res properly
+// Force Node runtime
 export const config = {
   runtime: "nodejs18.x",
 };
 
-
 export default async function handler(req, res) {
   if (req.method !== "POST") {
-    res.status(405).json({ error: "Method not allowed" });
-    return;
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
   try {
-    // Parse the body safely
-    let body = "";
-    req.on("data", chunk => (body += chunk));
-    await new Promise(resolve => req.on("end", resolve));
+    // Use modern Node 18+ way to parse JSON body
+    const body = await new Promise((resolve, reject) => {
+      let data = "";
+      req.on("data", chunk => (data += chunk));
+      req.on("end", () => resolve(data));
+      req.on("error", err => reject(err));
+    });
+
     const { query } = JSON.parse(body || "{}");
 
     if (!query) {
-      res.status(400).json({ error: "No query provided" });
-      return;
+      return res.status(400).json({ error: "No query provided" });
     }
 
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+    if (!GEMINI_API_KEY) {
+      return res.status(500).json({ error: "Gemini API key not set" });
+    }
 
+    // Call Gemini API
     const apiResponse = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`,
       {
@@ -45,12 +50,11 @@ export default async function handler(req, res) {
 
     const data = await apiResponse.json();
     const reply =
-      data?.candidates?.[0]?.content?.parts?.[0]?.text ||
-      "No legal data found.";
+      data?.candidates?.[0]?.content?.parts?.[0]?.text || "No legal data found.";
 
-    res.status(200).json({ reply });
+    return res.status(200).json({ reply });
   } catch (err) {
     console.error("Gemini API error:", err);
-    res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Internal server error" });
   }
 }
