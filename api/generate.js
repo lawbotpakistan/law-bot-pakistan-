@@ -8,36 +8,42 @@ export default async function handler(req, res) {
 
   try {
     const bodyText = await req.text();
-    const { query, userId, name, accountNumber, screenshotUrl } = JSON.parse(bodyText || "{}");
+    const { userId, query, payer_name, payer_ref, file_url, amount } = JSON.parse(bodyText || "{}");
 
-    if (!query) return res.status(400).json({ error: "No query provided" });
-    if (!userId || !name || !accountNumber || !screenshotUrl)
-      return res.status(400).json({ error: "Incomplete payment info" });
+    if (!userId || !query) return res.status(400).json({ error: "Missing userId or query" });
 
-    // Insert payment submission
-    const { error: paymentError } = await supabase.from("payments").insert([
-      {
-        user_id: userId,
-        screenshot_url: screenshotUrl,
-        payment_date: new Date().toISOString(),
-        approval_status: false,
-      },
-    ]);
-    if (paymentError) return res.status(500).json({ error: paymentError.message });
+    // 1️⃣ Insert payment if user submits new payment info
+    if (payer_name && payer_ref && file_url && amount) {
+      const { error: paymentError } = await supabase.from("payments").insert([
+        {
+          user_id: userId,
+          payer_name,
+          payer_ref,
+          file_url,
+          amount,
+          status: "pending",
+        },
+      ]);
+      if (paymentError) return res.status(500).json({ error: paymentError.message });
+    }
 
-    // Check if user is approved and subscription valid
-    const { data: userData, error: userError } = await supabase
-      .from("users")
+    // 2️⃣ Fetch user profile to check subscription
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
       .select("*")
       .eq("id", userId)
       .single();
-    if (userError) return res.status(500).json({ error: userError.message });
+    if (profileError) return res.status(500).json({ error: profileError.message });
 
-    const today = new Date();
-    if (!userData.paid_status || new Date(userData.end_date) < today)
+    const now = new Date();
+    if (
+      profile.subscription_status !== "active" ||
+      new Date(profile.subscription_expires_at) < now
+    ) {
       return res.status(403).json({ error: "Subscription expired or not approved yet" });
+    }
 
-    // Call Gemini API
+    // 3️⃣ Call Gemini API
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
     if (!GEMINI_API_KEY) return res.status(500).json({ error: "API key missing" });
 
@@ -48,8 +54,8 @@ export default async function handler(req, res) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [
-            { parts: [{ text: `${query}\nFocus: Pakistani law and cite pakistancode.gov.pk.` }] }
-          ]
+            { parts: [{ text: `${query}\nFocus: Pakistani law and cite pakistancode.gov.pk.` }] },
+          ],
         }),
       }
     );
@@ -57,9 +63,15 @@ export default async function handler(req, res) {
     const data = await apiResponse.json();
     const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || "No legal data found.";
 
-    return res.status(200).json({ reply, paymentStatus: userData.paid_status });
+    // 4️⃣ Save chat
+    const { error: chatError } = await supabase.from("chats").insert([
+      { user_id: userId, prompt: query, response: reply },
+    ]);
+    if (chatError) console.error("Chat save error:", chatError.message);
+
+    return res.status(200).json({ reply });
   } catch (err) {
-    console.error("Error:", err);
+    console.error("Backend error:", err);
     return res.status(500).json({ error: "Internal server error" });
   }
 }
