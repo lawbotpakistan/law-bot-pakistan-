@@ -17,7 +17,7 @@ export default async function handler(req, res) {
       })
     });
 
-    const data = await response.json();
+const { query } = req.body;
 
     res.status(200).json({
       reply: data.candidates?.[0]?.content?.parts?.[0]?.text || "No response from Gemini.",
