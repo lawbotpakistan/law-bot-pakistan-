@@ -2996,4 +2996,362 @@ Based on your situation, I'll provide complete guidance for khula proceedings in
 - Collect marriage certificate and nikah documents
 - Gather evidence of grounds for khula
 - Document financial status
+<script>
+/* ========= CONFIG - PUT KEYS HERE (ONLY HERE) =========
+   Replace the values below. Don't scatter keys anywhere else.
+*/
+const SUPABASE_URL = "https://iyakobcjerlwvcjvttwh.supabase.co"; // <- your Supabase project URL (already known)
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml5YWtvYmNqZXJsd3ZjanZ0dHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MzU3OTEsImV4cCI6MjA3NTUxMTc5MX0.IwGfznq8fXhm5QEC7qAhndgKnDX2oWzxODEAmXyx7G8"; // <- your anon key (you provided)
+const GEMINI_BACKEND_URL = "https://law-bot-pakistan.vercel.app/api/generate"; // <- your Vercel backend (already deployed)
+
+/* ===================================================== */
+
+/* Minimal guard: make sure supabase lib loaded */
+if (!window.supabase || typeof window.supabase.createClient !== 'function') {
+  console.error('Supabase JS not loaded. Ensure <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script> exists in head.');
+  // Don't throw — let UI load but features will be disabled.
+}
+
+/* Initialize supabase (exposed as global `supabase`) so existing code using `supabase` keeps working */
+try {
+  window.supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+  console.log('Supabase client initialized.');
+} catch (e) {
+  console.error('Supabase init failed:', e);
+}
+
+/* App state */
+let CURRENT_USER = null;       // supabase auth user object
+let USER_PROFILE = null;       // profile row from 'profiles' table
+
+/* UTILS */
+const $ = (id) => document.getElementById(id);
+function toast(msg) { alert(msg); } // replace with fancier UI later
+
+/* ========== AUTH & PROFILE HELPERS ========== */
+async function fetchProfile(userId) {
+  if (!window.supabase) return null;
+  const { data, error } = await window.supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .limit(1)
+    .single();
+  if (error) {
+    console.warn('fetchProfile error', error);
+    return null;
+  }
+  return data;
+}
+
+async function createOrUpdateProfile(user) {
+  if (!window.supabase || !user) return;
+  const p = {
+    id: user.id,
+    email: user.email,
+    full_name: user.user_metadata?.full_name || null,
+    phone: user.user_metadata?.phone || null,
+    subscription_status: 'inactive',
+    subscription_expires_at: null,
+    created_at: new Date().toISOString()
+  };
+  const { error } = await window.supabase.from('profiles').upsert(p);
+  if (error) console.warn('upsert profile error', error);
+}
+
+/* ========== AUTH UI HOOKS ========== */
+document.addEventListener('DOMContentLoaded', async () => {
+  // Hook auth modal submit
+  const authForm = $('authForm');
+  if (authForm) {
+    authForm.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      await handleAuthSubmit();
+    });
+  }
+
+  // Toggle signup/login
+  const toggleAuthBtn = $('toggleAuth');
+  if (toggleAuthBtn) {
+    toggleAuthBtn.addEventListener('click', () => {
+      isLoginMode = !isLoginMode;
+      document.getElementById('nameField').style.display = isLoginMode ? 'none' : 'block';
+      $('authTitle').textContent = isLoginMode ? 'Login to LawBot' : 'Create an account';
+      $('authSubmit').textContent = isLoginMode ? 'Login' : 'Sign up';
+    });
+  }
+
+  // Login button in nav
+  const loginBtn = $('loginBtn');
+  if (loginBtn) {
+    loginBtn.addEventListener('click', () => {
+      document.getElementById('authModal').style.display = 'flex';
+      isLoginMode = true;
+      document.getElementById('nameField').style.display = 'none';
+      $('authTitle').textContent = 'Login to LawBot';
+    });
+  }
+
+  // close auth
+  const closeAuth = $('closeAuth');
+  if (closeAuth) closeAuth.addEventListener('click', () => { $('authModal').style.display = 'none'; });
+
+  // Logout button
+  const logoutBtn = $('logoutBtn');
+  if (logoutBtn) logoutBtn.addEventListener('click', async () => { await supabase.auth.signOut(); window.location.reload(); });
+
+  // Payment submission
+  const submitPaymentBtn = $('submitPayment');
+  if (submitPaymentBtn) submitPaymentBtn.addEventListener('click', submitPaymentProof);
+
+  // Quick load session on start
+  await tryRestoreSession();
+
+  // Bind sendMessage from the existing UI send button (#sendMessage)
+  const sendBtn = $('sendMessage');
+  if (sendBtn) sendBtn.addEventListener('click', sendMessage);
+  const messageInput = $('messageInput');
+  if (messageInput) messageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+});
+
+/* ========== AUTH FLOW IMPLEMENTATION ========== */
+async function handleAuthSubmit() {
+  const email = $('authEmail').value.trim();
+  const password = $('authPassword').value;
+  const name = $('authName') ? $('authName').value.trim() : '';
+
+  if (!email || !password) { toast('Please enter email and password'); return; }
+
+  try {
+    if (isLoginMode) {
+      // Login flow
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      CURRENT_USER = data.user;
+      USER_PROFILE = await fetchProfile(CURRENT_USER.id);
+      $('authModal').style.display = 'none';
+      onLogin();
+    } else {
+      // Signup flow
+      const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { full_name: name } }});
+      if (error) throw error;
+      // create profile row (will be updated on confirm)
+      // NOTE: email confirmation required for some setups; still create profile
+      createOrUpdateProfile(data.user).catch(()=>{});
+      toast('Signup success — please check your email for verification. After verifying, log in.');
+      $('authModal').style.display = 'none';
+    }
+  } catch (err) {
+    console.error('Auth error', err);
+    toast('Auth error: ' + (err.message || JSON.stringify(err)));
+  }
+}
+
+async function tryRestoreSession() {
+  try {
+    const { data } = await supabase.auth.getSession();
+    const session = data?.session;
+    if (session?.user) {
+      CURRENT_USER = session.user;
+      USER_PROFILE = await fetchProfile(CURRENT_USER.id);
+      onLogin();
+    } else {
+      // show login button only
+      toggleNavForLoggedOut();
+    }
+  } catch (err) {
+    console.warn('Session restore failed', err);
+    toggleNavForLoggedOut();
+  }
+}
+
+function toggleNavForLoggedIn() {
+  if ($('loginBtn')) $('loginBtn').style.display = 'none';
+  if ($('logoutBtn')) $('logoutBtn').style.display = 'inline-block';
+  // Show admin if profile says admin (checked later)
+}
+
+function toggleNavForLoggedOut() {
+  if ($('loginBtn')) $('loginBtn').style.display = 'inline-block';
+  if ($('logoutBtn')) $('logoutBtn').style.display = 'none';
+}
+
+/* Called after successful login */
+async function onLogin() {
+  toggleNavForLoggedIn();
+  // refresh profile
+  if (CURRENT_USER) USER_PROFILE = await fetchProfile(CURRENT_USER.id);
+  if (USER_PROFILE && USER_PROFILE.subscription_status === 'active' && new Date(USER_PROFILE.subscription_expires_at) > new Date()) {
+    // user has valid subscription
+    showPage('chat');
+  } else {
+    // not active => show payment page
+    showPage('payment');
+  }
+
+  // If profile indicates admin true, show admin button
+  if (USER_PROFILE && USER_PROFILE.is_admin) {
+    const adminBtn = $('adminBtn'); if (adminBtn) adminBtn.style.display = 'inline-block';
+  }
+}
+
+/* ========== PAYMENT PROOF UPLOAD ========== */
+async function submitPaymentProof() {
+  if (!CURRENT_USER) { toast('Login first'); showAuthModal(); return; }
+  const fileInput = $('paymentScreenshot');
+  const payerPhone = null; // optional enhancement: collect payer name/phone if desired
+
+  if (!fileInput || !fileInput.files || fileInput.files.length === 0) { toast('Upload payment screenshot first'); return; }
+  const file = fileInput.files[0];
+
+  // Limit size 5MB
+  if (file.size > 5 * 1024 * 1024) { toast('File too large (max 5MB)'); return; }
+
+  try {
+    const filePath = `payments/${CURRENT_USER.id}/${Date.now()}_${file.name}`;
+    const { error: upErr } = await supabase.storage.from('payments').upload(filePath, file, { cacheControl: '3600', upsert: false });
+    if (upErr) throw upErr;
+
+    // get public url (or signed url approach)
+    const { data: urlData } = await supabase.storage.from('payments').getPublicUrl(filePath);
+
+    // insert payment record in payments table
+    const { error: insErr } = await supabase.from('payments').insert([{
+      user_id: CURRENT_USER.id,
+      payer_name: CURRENT_USER.email,
+      payer_ref: null,
+      file_path: filePath,
+      file_url: urlData.publicUrl,
+      amount: 2500,
+      status: 'pending',
+      created_at: new Date().toISOString()
+    }]);
+    if (insErr) throw insErr;
+
+    toast('Payment proof submitted. Admin will review within 24 hours.');
+    // optionally redirect to home or payment page
+    showPage('home');
+  } catch (err) {
+    console.error('submitPaymentProof err', err);
+    toast('Failed to submit payment proof: ' + (err.message || JSON.stringify(err)));
+  }
+}
+
+/* ========== CHAT: sendMessage (calls your Gemini backend) ========== */
+async function sendMessage() {
+  try {
+    const input = $('messageInput');
+    if (!input) return;
+    const text = input.value.trim();
+    if (!text) return;
+
+    // Ensure logged in & active
+    if (!CURRENT_USER) { toast('Please login to use the chat'); showAuthModal(); return; }
+    USER_PROFILE = await fetchProfile(CURRENT_USER.id);
+    if (!USER_PROFILE || USER_PROFILE.subscription_status !== 'active' || !USER_PROFILE.subscription_expires_at || new Date(USER_PROFILE.subscription_expires_at) <= new Date()) {
+      toast('Subscription inactive or expired. Please submit payment proof.');
+      showPage('payment');
+      return;
+    }
+
+    // Add user message UI
+    addMessage(CURRENT_USER.user_metadata?.full_name || CURRENT_USER.email || 'You', text, 'user');
+    input.value = '';
+    addMessage('LawBot Pakistan', 'Thinking...', 'bot');
+
+    // Call backend with user_id and prompt
+    const resp = await fetch(GEMINI_BACKEND_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: CURRENT_USER.id, prompt: text })
+    });
+
+    const json = await resp.json();
+    // Remove last "Thinking..." bubble
+    const chatMessages = $('chatMessages');
+    if (chatMessages && chatMessages.lastElementChild) {
+      // find last bot msg with 'Thinking...' and remove or replace
+      const last = chatMessages.lastElementChild;
+      // simple heuristic: if last contains 'Thinking...' replace; else append result
+      if (last && last.textContent && last.textContent.includes('Thinking')) {
+        last.remove();
+      }
+    }
+
+    const answer = json.response || json.output || json.answer || JSON.stringify(json);
+    addMessage('LawBot Pakistan', answer, 'bot');
+
+    // Optional: persist chat lines into 'chats' table (non-blocking)
+    if (window.supabase) {
+      try {
+        await supabase.from('chats').insert([{ user_id: CURRENT_USER.id, prompt: text, response: answer, created_at: new Date().toISOString() }]);
+      } catch (e) { /* non-fatal */ }
+    }
+
+  } catch (err) {
+    console.error('sendMessage error', err);
+    addMessage('LawBot Pakistan', 'Error: failed to fetch AI response.', 'bot');
+  }
+}
+
+/* ========== ADMIN: loadAdminData (used by UI) ========== */
+async function loadAdminData() {
+  if (!CURRENT_USER) { toast('Login as admin first'); return; }
+  // verify admin via profiles.is_admin
+  const prof = await fetchProfile(CURRENT_USER.id);
+  if (!prof || !prof.is_admin) { toast('Access denied: not admin'); return; }
+
+  // Count users, active subs, pending payments, revenue
+  try {
+    const { data: totalUsers } = await supabase.from('profiles').select('id', { count: 'exact' });
+    const { data: active } = await supabase.from('profiles').select('id', { count: 'exact' }).eq('subscription_status', 'active');
+    const { data: pendingPayments } = await supabase.from('payments').select('id', { count: 'exact' }).eq('status', 'pending');
+    const { data: revenueRows } = await supabase.from('payments').select('amount').eq('status','approved');
+
+    $('totalUsers').textContent = (totalUsers?.length || 0);
+    $('activeSubscriptions').textContent = (active?.length || 0);
+    $('pendingPayments').textContent = (pendingPayments?.length || 0);
+    // compute monthly revenue (simple sum of approved payments this month)
+    let revenue = 0;
+    if (revenueRows && revenueRows.length) revenue = revenueRows.reduce((s,r) => s + (Number(r.amount)||0), 0);
+    $('monthlyRevenue').textContent = 'Rs. ' + revenue;
+  } catch (err) {
+    console.error('loadAdminData err', err);
+    toast('Failed to load admin data');
+  }
+
+  // populate users table
+  try {
+    const { data: users } = await supabase.from('profiles').select('*').order('created_at', { ascending: false }).limit(200);
+    const tbody = $('usersTable'); if (!tbody) return;
+    tbody.innerHTML = '';
+    users.forEach(u => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="border px-4 py-2">${u.email || ''}</td>
+        <td class="border px-4 py-2">${u.full_name || ''}</td>
+        <td class="border px-4 py-2">${u.subscription_status || 'inactive'}</td>
+        <td class="border px-4 py-2">${u.created_at ? new Date(u.created_at).toLocaleString() : ''}</td>
+        <td class="border px-4 py-2">
+          <button class="px-3 py-1 bg-green-500 text-white rounded" onclick="approveUser('${u.id}')">Approve</button>
+          <button class="px-3 py-1 bg-yellow-500 text-white rounded" onclick="deactivateUser('${u.id}')">Deactivate</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  } catch (err) {
+    console.error('populate users err', err);
+  }
+}
+
+/* ========== expose overrides to global (so existing inline onclicks use them) ========== */
+window.sendMessage = sendMessage;
+window.submitPaymentProof = submitPaymentProof;
+window.loadAdminData = loadAdminData;
+window.tryQuestion = window.tryQuestion || function(q){ if ($('messageInput')) $('messageInput').value = q; sendMessage(); };
+
+/* Debug log show */
+console.log('Injected backend integration script active. Supabase URL:', SUPABASE_URL, 'GEMINI_BACKEND_URL:', GEMINI_BACKEND_URL);
+</script>
+
 <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98c687eaa67efbff',t:'MTc2MDEwMzY0My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
