@@ -1,6 +1,4 @@
-export const config = {
-  runtime: "nodejs", // was "nodejs18.x"
-};
+export const config = { runtime: "nodejs" }; // ✅ fixed for Vercel
 
 import { createClient } from "@supabase/supabase-js";
 
@@ -15,7 +13,7 @@ export default async function handler(req, res) {
 
     if (!userId || !query) return res.status(400).json({ error: "Missing userId or query" });
 
-    // 1️⃣ Insert payment if user submits new payment info
+    // 1️⃣ Insert payment submission if provided
     if (payer_name && payer_ref && file_url && amount) {
       const { error: paymentError } = await supabase.from("payments").insert([
         {
@@ -39,10 +37,7 @@ export default async function handler(req, res) {
     if (profileError) return res.status(500).json({ error: profileError.message });
 
     const now = new Date();
-    if (
-      profile.subscription_status !== "active" ||
-      new Date(profile.subscription_expires_at) < now
-    ) {
+    if (profile.subscription_status !== "active" || new Date(profile.subscription_expires_at) < now) {
       return res.status(403).json({ error: "Subscription expired or not approved yet" });
     }
 
