@@ -1,4 +1,7 @@
-export const config = { runtime: "nodejs18.x" };
+export const config = {
+  runtime: "nodejs", // was "nodejs18.x"
+};
+
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
