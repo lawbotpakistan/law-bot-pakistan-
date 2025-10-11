@@ -1,4 +1,4 @@
-export const config = { runtime: "nodejs" }; // ✅ fixed for Vercel
+export const config = { runtime: "nodejs" };
 
 import { createClient } from "@supabase/supabase-js";
 
@@ -13,7 +13,7 @@ export default async function handler(req, res) {
 
     if (!userId || !query) return res.status(400).json({ error: "Missing userId or query" });
 
-    // 1️⃣ Insert payment submission if provided
+    // 1️⃣ If user is submitting payment info, insert into payments
     if (payer_name && payer_ref && file_url && amount) {
       const { error: paymentError } = await supabase.from("payments").insert([
         {
