@@ -157,5 +157,23 @@ export default async function handler(req, res) {
   } catch (err) {
     console.error("generate.js error:", err);
     return res.status(500).json({ error: "Internal server error" });
+    
+// ✳️ 5️⃣ Optional PDF generation for document-type queries
+const isDocumentRequest = ["agreement", "contract", "petition", "application", "affidavit", "legal notice"].some(word =>
+  query.toLowerCase().includes(word)
+);
+
+if (isDocumentRequest) {
+  // Generate a simple PDF and return it encoded
+  const { jsPDF } = await import("jspdf");
+  const pdf = new jsPDF();
+  pdf.text("LawBot Pakistan - Legal Document", 10, 20);
+  pdf.text(`Query: ${query}`, 10, 40);
+  pdf.text(reply, 10, 60, { maxWidth: 180 });
+
+  const pdfBase64 = pdf.output("datauristring");
+  return res.status(200).json({ reply, pdf: pdfBase64 });
+}
+
   }
 }
