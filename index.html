@@ -1124,8 +1124,36 @@
                 const messages = document.getElementById('chatMessages');
                 messages.removeChild(messages.lastChild);
                 
-                const response = generateLegalResponse(message);
-                addMessage('bot', response);
+               const responseBox = document.getElementById("responseBox"); // Or however you show bot messages
+responseBox.textContent = "Thinking like a Pakistani lawyer... ⚖️";
+
+try {
+  const res = await fetch("https://your-vercel-project.vercel.app/api/generate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ userId: "USER_UUID_FROM_PROFILE", query })
+  });
+
+  const data = await res.json();
+
+  if (data.error) {
+    addMessage("⚠️ " + data.error, "bot");
+  } else {
+    addMessage(data.reply, "bot");
+
+    // ✅ PDF generation if required (we added this already)
+    if (data.pdf) {
+      const link = document.createElement("a");
+      link.href = data.pdf;
+      link.download = "LawBot_Pakistan_Document.pdf";
+      link.click();
+    }
+  }
+} catch (err) {
+  addMessage("💥 Server error, try again later.", "bot");
+  console.error(err);
+}
+
                 // 🧾 Auto-download PDF if query needs a document
 const lowerQuery = query.toLowerCase();
 const needsPDF = ["agreement","contract","petition","application","affidavit","legal notice"]
