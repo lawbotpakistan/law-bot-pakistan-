@@ -12,10 +12,13 @@
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "@supabase/supabase-js": "^2.10.0",
-    "pdfkit": "^0.13.0",
-    "formidable": "^2.1.2"
+    "formidable": "^2.1.2",
+    "pdfkit": "^0.13.0"
   },
   "devDependencies": {
     "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": "20.x"
   }
 }
