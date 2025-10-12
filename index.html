@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LawBot Pakistan - Professional AI Legal Assistant</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
     <style>
         body {
             box-sizing: border-box;
@@ -1124,6 +1126,20 @@
                 
                 const response = generateLegalResponse(message);
                 addMessage('bot', response);
+                // 🧾 Auto-download PDF if query needs a document
+const lowerQuery = query.toLowerCase();
+const needsPDF = ["agreement","contract","petition","application","affidavit","legal notice"]
+                  .some(word => lowerQuery.includes(word));
+
+if (needsPDF) {
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF();
+  pdf.text("LawBot Pakistan - Legal Document", 10, 20);
+  pdf.text(`Query: ${query}`, 10, 40);
+  pdf.text(response, 10, 60, { maxWidth: 180 });
+  pdf.save("LawBot_Pakistan_Document.pdf");
+}
+
             }, 2000);
         }
 
