@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LawBot Admin Panel ⚖️</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f7f7f7; padding: 30px; }
+    h2 { text-align: center; }
+    .table { width: 100%; border-collapse: collapse; margin-top: 30px; background: white; }
+    .table th, .table td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+    .btn { padding: 6px 10px; border: none; border-radius: 4px; cursor: pointer; }
+    .approve { background: #4CAF50; color: white; }
+    .reject { background: #f44336; color: white; }
+  </style>
+</head>
+<body>
+
+  <h2>⚖️ LawBot Pakistan - Admin Panel</h2>
+  <div id="adminStatus"></div>
+
+  <table class="table" id="paymentsTable">
+    <thead>
+      <tr>
+        <th>User ID</th>
+        <th>Payer Name</th>
+        <th>Reference</th>
+        <th>Amount</th>
+        <th>Screenshot</th>
+        <th>Status</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody id="paymentsBody"></tbody>
+  </table>
+
+  <script type="module">
+    import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+
+    const SUPABASE_URL = "https://iyakobcjerlwvcjvttwh.supabase.co";
+    const SUPABASE_SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml5YWtvYmNqZXJsd3ZjanZ0dHdoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1OTkzNTc5MSwiZXhwIjoyMDc1NTExNzkxfQ.8lqZYWvjWHh9EsOOueIgegSOWFRzDS1Qsv8xOuwDGNk";
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    const tableBody = document.getElementById("paymentsBody");
+    const adminStatus = document.getElementById("adminStatus");
+
+    async function loadPayments() {
+      const { data, error } = await supabase.from("payments").select("*");
+      if (error) {
+        adminStatus.innerHTML = "❌ Failed to load payments.";
+        console.error(error);
+        return;
+      }
+      tableBody.innerHTML = "";
+      data.forEach((p) => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${p.user_id}</td>
+          <td>${p.payer_name}</td>
+          <td>${p.payer_ref}</td>
+          <td>Rs. ${p.amount}</td>
+          <td><a href="${p.file_url}" target="_blank">View</a></td>
+          <td>${p.status}</td>
+          <td>
+            <button class="btn approve" onclick="approvePayment('${p.id}')">Approve</button>
+            <button class="btn reject" onclick="rejectPayment('${p.id}')">Reject</button>
+          </td>
+        `;
+        tableBody.appendChild(row);
+      });
+    }
+
+    window.approvePayment = async (id) => {
+      const { error } = await supabase
+        .from("payments")
+        .update({ status: "approved", reviewed_at: new Date().toISOString() })
+        .eq("id", id);
+      if (error) alert("❌ Error approving payment.");
+      else alert("✅ Payment approved! Subscription activated.");
+      loadPayments();
+    };
+
+    window.rejectPayment = async (id) => {
+      const { error } = await supabase
+        .from("payments")
+        .update({ status: "rejected", reviewed_at: new Date().toISOString() })
+        .eq("id", id);
+      if (error) alert("❌ Error rejecting payment.");
+      else alert("🚫 Payment rejected.");
+      loadPayments();
+    };
+
+    loadPayments();
+  </script>
+</body>
+</html>
