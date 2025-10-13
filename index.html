@@ -1296,7 +1296,7 @@ Please let me know how else I can assist with your legal matter.`;
     responseBox.textContent = "Thinking..please hold on for a second... ⚖️";
 
     try {
-      const res = await fetch("https://law-bot-pakistan-yourproject.vercel.app/api/generate", {
+      const res = await fetch("https://law-bot-pakistan.vercel.app/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId, query })
