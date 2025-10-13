@@ -6,73 +6,55 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
-export default function AdminPanel() {
+export default function AdminPage() {
   const [payments, setPayments] = useState([]);
-  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setUser(data.session?.user ?? null));
+    async function fetchPayments() {
+      const { data, error } = await supabase.from("payments").select("*");
+      if (!error) setPayments(data);
+      setLoading(false);
+    }
     fetchPayments();
   }, []);
 
-  async function fetchPayments() {
-    const { data, error } = await supabase
-      .from("payments")
-      .select("*")
-      .eq("status", "pending");
-    if (error) alert(error.message);
-    else setPayments(data);
+  async function approvePayment(id) {
+    await supabase.from("payments").update({ status: "approved" }).eq("id", id);
+    alert("✅ Payment approved!");
+    window.location.reload();
   }
 
-  async function updatePayment(id, action) {
-    const { data } = await supabase.auth.getSession();
-    const token = data?.session?.access_token;
-    const resp = await fetch("/api/admin/approve", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        paymentId: id,
-        newStatus: action,
-        adminReason: action === "rejected" ? "Rejected manually" : null,
-      }),
-    });
-    const j = await resp.json();
-    if (j.ok) {
-      alert("Done!");
-      fetchPayments();
-    } else alert(j.error || "Error");
+  async function rejectPayment(id) {
+    await supabase.from("payments").update({ status: "rejected" }).eq("id", id);
+    alert("❌ Payment rejected!");
+    window.location.reload();
   }
+
+  if (loading) return <p>Loading...</p>;
 
   return (
-    <div style={{ padding: 20 }}>
-      <h2>👑 Admin Panel</h2>
-      <p>{user ? `Logged in: ${user.email}` : "Not logged in"}</p>
-      <hr />
+    <div style={{ padding: 30 }}>
+      <h1>🧑‍⚖️ LawBot Admin Dashboard</h1>
       {payments.length === 0 ? (
-        <p>No pending payments</p>
+        <p>No payments found</p>
       ) : (
         payments.map((p) => (
-          <div
-            key={p.id}
-            style={{
-              border: "1px solid #ccc",
-              borderRadius: 10,
-              padding: 10,
-              marginBottom: 10,
-            }}
-          >
-            <p>
-              <b>{p.payer_name}</b> — Rs.{p.amount}
-            </p>
-            <p>Ref: {p.payer_ref}</p>
-            <a href={p.file_url} target="_blank">View Screenshot</a>
-            <div style={{ marginTop: 10 }}>
-              <button onClick={() => updatePayment(p.id, "approved")}>✅ Approve</button>
-              <button onClick={() => updatePayment(p.id, "rejected")} style={{ marginLeft: 10 }}>❌ Reject</button>
-            </div>
+          <div key={p.id} style={{ border: "1px solid #ccc", margin: "10px 0", padding: 10 }}>
+            <p><b>Name:</b> {p.payer_name}</p>
+            <p><b>Ref:</b> {p.payer_ref}</p>
+            <p><b>Status:</b> {p.status}</p>
+            <p><b>Amount:</b> Rs {p.amount}</p>
+            {p.file_url && <a href={p.file_url} target="_blank">📎 View Screenshot</a>}
+            <br />
+            {p.status === "pending" && (
+              <>
+                <button onClick={() => approvePayment(p.id)}>✅ Approve</button>
+                <button onClick={() => rejectPayment(p.id)} style={{ marginLeft: 10 }}>
+                  ❌ Reject
+                </button>
+              </>
+            )}
           </div>
         ))
       )}
