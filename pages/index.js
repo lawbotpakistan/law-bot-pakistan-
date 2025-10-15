@@ -1,1 +1,1 @@
-"export default function Home(){return (<h1>LawBot Pakistan is Live ??</h1>)}" 
+"export default function Home() { return (<main style={{fontFamily:'sans-serif',textAlign:'center',marginTop:'50px'}}><h1>?? LawBot Pakistan</h1><p>Your AI legal assistant is live.</p><a href='/admin' style={{color:'blue'}}>Go to Admin Panel</a></main>); }" 
