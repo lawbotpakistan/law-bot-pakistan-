@@ -1,0 +1,5 @@
+{
+  "outputDirectory": "public",
+  "buildCommand": "",
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD ."
+}
