@@ -3,10 +3,10 @@
   "/_error": "pages/_error.js",
   "/admin": "pages/admin.js",
   "/": "pages/index.js",
-  "/api/update_payments": "pages/api/update_payments.js",
   "/api/payments": "pages/api/payments.js",
+  "/api/update_payments": "pages/api/update_payments.js",
   "/admin/list": "pages/admin/list.js",
-  "/_document": "pages/_document.js",
+  "/api/generate": "pages/api/generate.js",
   "/admin/approve": "pages/admin/approve.js",
-  "/api/generate": "pages/api/generate.js"
+  "/_document": "pages/_document.js"
 }
