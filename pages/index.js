@@ -87,5 +87,51 @@ export default function Home() {
         </div>
       )}
     </div>
+export default function Home() {
+  return (
+    <html lang="en">
+      <head>
+        <title>⚖️ LawBot Pakistan</title>
+      </head>
+      <body>
+        <h1>⚖️ LawBot Pakistan</h1>
+        <p>Get instant legal help, documents, and video resources.</p>
+        <textarea id="userQuery" rows="4" placeholder="Type your legal question..."></textarea>
+        <br />
+        <button onClick={askLawBot}>Ask LawBot</button>
+        <div id="responseBox">Answer will appear here...</div>
+        <p>
+          📄 Related Legal Docs:{" "}
+          <a href="https://www.pakistanlawsite.com/" target="_blank">PakistanLawSite</a>
+        </p>
+        <p>
+          🎥 Related Videos:{" "}
+          <a
+            href="https://www.youtube.com/results?search_query=pakistan+law+explanation"
+            target="_blank"
+          >
+            Watch on YouTube
+          </a>
+        </p>
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            async function askLawBot() {
+              const q=document.getElementById('userQuery').value.trim();
+              const r=document.getElementById('responseBox');
+              if(!q){r.textContent='⚠️ Please type a question first.';return;}
+              r.textContent='⏳ Thinking... please wait.';
+              try{
+                const res=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:q})});
+                const data=await res.json();
+                r.textContent=data.reply||'⚠️ No response from AI.';
+              }catch(e){r.textContent='💥 Server error, please try again later.';}
+            }
+          `,
+        }} />
+      </body>
+    </html>
+  );
+}
+
   );
 }
