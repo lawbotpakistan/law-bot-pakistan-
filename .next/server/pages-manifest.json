@@ -1,5 +1,12 @@
 {
   "/_app": "pages/_app.js",
   "/_error": "pages/_error.js",
+  "/admin": "pages/admin.js",
+  "/": "pages/index.js",
+  "/api/payments": "pages/api/payments.js",
+  "/api/update_payments": "pages/api/update_payments.js",
+  "/admin/list": "pages/admin/list.js",
+  "/api/generate": "pages/api/generate.js",
+  "/admin/approve": "pages/admin/approve.js",
   "/_document": "pages/_document.js"
 }
