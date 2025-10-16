@@ -8,11 +8,17 @@
     "start": "next start"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.75.0",
-    "next": "^15.5.5",
-    "node-fetch": "^3.3.2",
-    "pdfkit": "^0.17.2",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "next": "14.0.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "@supabase/supabase-js": "^2.10.0",
+    "formidable": "^2.1.2",
+    "pdfkit": "^0.13.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": "20.x"
   }
 }
